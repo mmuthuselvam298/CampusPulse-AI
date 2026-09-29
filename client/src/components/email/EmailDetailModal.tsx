@@ -57,7 +57,7 @@ export const EmailDetailModal: React.FC = () => {
   };
 
   const openGoogleMaps = () => {
-    const query = encodeURIComponent(`Northbridge University ${selectedEmail.location || 'Campus'}`);
+    const query = encodeURIComponent(`SRM University-AP Andhra Pradesh ${selectedEmail.location || 'Campus'}`);
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
   };
 
@@ -196,7 +196,7 @@ export const EmailDetailModal: React.FC = () => {
                     {selectedEmail.location}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Northbridge University Main Campus Grounds
+                    SRM University-AP · Neerukonda Campus Grounds
                   </p>
                 </div>
 

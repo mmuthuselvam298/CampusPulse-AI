@@ -1,10 +1,10 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import { apiRouter } from './routes/api';
-
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import { apiRouter } from './routes/api';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -36,16 +36,16 @@ export class PriorityEngine {
 
     // Factor 2 & 12: Immediate Required Action
     let immediateActionScore = 0;
-    if (text.includes('must report') || text.includes('must submit') || text.includes('required action') || text.includes('strictly required') || text.includes('action required')) {
+    if (text.includes('must report') || text.includes('must submit') || text.includes('required action') || text.includes('strictly required') || text.includes('action required') || text.includes('report by')) {
       immediateActionScore = 20;
-    } else if (text.includes('please submit') || text.includes('register') || text.includes('complete before') || text.includes('verify')) {
-      immediateActionScore = 12;
+    } else if (text.includes('please submit') || text.includes('register') || text.includes('complete before') || text.includes('apply before') || text.includes('verify')) {
+      immediateActionScore = 14;
     }
 
     // Factor 4 & 8: Examination & Academic Impact
     let academicConsequenceScore = 0;
     let examAttendanceImpactScore = 0;
-    if (text.includes('exam') || text.includes('examination') || text.includes('hall ticket') || text.includes('mid-semester') || text.includes('venue change') || text.includes('relocated')) {
+    if (text.includes('exam') || text.includes('examination') || text.includes('hall ticket') || text.includes('mid-semester') || text.includes('venue change') || text.includes('venue changed') || text.includes('shifted to') || text.includes('relocated')) {
       examAttendanceImpactScore += 25;
       if (text.includes('debarment') || text.includes('debarred') || text.includes('fail') || text.includes('disqualification')) {
         academicConsequenceScore += 25;
@@ -53,7 +53,7 @@ export class PriorityEngine {
     }
 
     // Factor 9: Attendance Impact
-    if (text.includes('attendance shortage') || text.includes('shortage notice') || text.includes('below 75') || text.includes('condonation')) {
+    if (text.includes('attendance shortage') || text.includes('shortage notice') || text.includes('shortage warning') || text.includes('below 75') || text.includes('condonation')) {
       examAttendanceImpactScore += 22;
       academicConsequenceScore += 18;
     }
@@ -64,9 +64,9 @@ export class PriorityEngine {
       financialConsequenceScore = 18;
     }
 
-    // Factor 6: Safety Implications / Weather
+    // Factor 6: Safety Implications / Weather / Closures
     let safetyScore = 0;
-    if (text.includes('severe weather') || text.includes('cyclone') || text.includes('red alert') || text.includes('emergency') || text.includes('curfew') || text.includes('evacuat') || text.includes('fire safety')) {
+    if (text.includes('severe weather') || text.includes('heavy rainfall') || text.includes('cyclone') || text.includes('red alert') || text.includes('emergency') || text.includes('closure') || text.includes('campus closed') || text.includes('waterlogging')) {
       safetyScore = 35;
     }
 
@@ -80,7 +80,7 @@ export class PriorityEngine {
 
     // Factor 10: Explicit Urgency Keywords
     let urgencyKeywordsScore = 0;
-    const criticalWords = ['urgent', 'emergency', 'critical', 'immediate', 'relocated', 'cancelled', 'red alert', 'shortage notice', 'warning'];
+    const criticalWords = ['urgent', 'emergency', 'critical', 'immediate', 'relocated', 'shifted', 'cancelled', 'red alert', 'shortage notice', 'warning'];
     criticalWords.forEach(word => {
       if (text.includes(word)) urgencyKeywordsScore += 6;
     });
@@ -108,10 +108,12 @@ export class PriorityEngine {
     let priorityScore = Math.min(99, Math.max(10, Math.round(rawScore * 0.72)));
 
     // Specific showcase boosts
-    if (text.includes('examination hall changed') || text.includes('severe weather') || text.includes('campus closed')) {
+    if (text.includes('venue changed') || text.includes('venue shift') || text.includes('examination hall changed') || text.includes('severe weather') || text.includes('campus closed') || text.includes('university closure')) {
       priorityScore = Math.max(95, priorityScore);
-    } else if (text.includes('attendance shortage') || (text.includes('fee payment') && text.includes('reminder')) || text.includes('bus route 4 delayed') || text.includes('google cloud campus drive')) {
-      priorityScore = Math.max(85, priorityScore);
+    } else if (text.includes('attendance shortage') || (text.includes('fee payment') && text.includes('reminder')) || text.includes('bus route') || text.includes('condonation')) {
+      priorityScore = Math.max(82, priorityScore);
+    } else if (text.includes('acm') || text.includes('recruitment') || text.includes('workshop')) {
+      priorityScore = Math.max(55, priorityScore);
     } else if (text.includes('newsletter') || text.includes('photography club')) {
       priorityScore = Math.min(30, priorityScore);
     }

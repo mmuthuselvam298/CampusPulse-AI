@@ -260,16 +260,29 @@ apiRouter.post('/gmail/sync', async (_req: Request, res: Response) => {
   }
 });
 
+// AI HEALTH / STATUS (Requirement 50)
+apiRouter.get('/ai/status', async (_req: Request, res: Response) => {
+  try {
+    const health = await ai.checkHealth();
+    res.json(health);
+  } catch (err: any) {
+    res.status(500).json({ aiProvider: 'gemini', status: 'error', error: err.message });
+  }
+});
+
 // 12. SETTINGS
 apiRouter.get('/settings', (_req: Request, res: Response) => {
   res.json({
     student: db.getStudentProfile(),
     mode: db.getMode(),
     aiProvider: ai.getActiveProviderName(),
+    model: ai.getModelName(),
     allowedDomains: UniversityFilter.getAllowedDomains(),
     categoriesEnabled: [
-      'EXAMS', 'ATTENDANCE', 'ACADEMICS', 'TRANSPORT', 'EVENTS',
-      'FEES', 'HOSTEL', 'PLACEMENTS', 'SCHOLARSHIPS', 'EMERGENCY'
+      'ACADEMICS', 'EXAMS', 'ATTENDANCE', 'ASSIGNMENTS', 'TIMETABLE',
+      'COURSE REGISTRATION', 'EVENTS', 'TECH EVENTS', 'HACKATHONS', 'STUDENT CLUBS',
+      'PLACEMENTS', 'ENTREPRENEURSHIP', 'FEES', 'HOSTEL', 'TRANSPORT',
+      'ADMINISTRATION', 'EMERGENCY', 'FACILITIES', 'LIBRARY', 'SCHOLARSHIPS', 'GENERAL'
     ]
   });
 });

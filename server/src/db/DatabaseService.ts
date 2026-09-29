@@ -12,14 +12,17 @@ export class DatabaseService {
   private actions: ActionItem[] = [];
   private mode: 'demo' | 'gmail' = 'demo';
   private simulatedCount = 0;
-  private pulseWaveform: number[] = [30, 45, 25, 60, 80, 95, 70, 50, 40, 65, 85, 90, 75, 55, 35];
+  private pulseWaveform: number[] = [45, 60, 35, 75, 95, 85, 65, 70, 90, 85, 60, 50, 80, 95, 45];
   private lastPulseTime: string = new Date().toISOString();
 
   private studentProfile = {
     name: "Muthu",
-    university: "Northbridge University",
-    program: "CSE – AI & ML",
-    semester: 3
+    university: "SRM University-AP",
+    school: "School of Engineering and Sciences (SEAS)",
+    program: "B.Tech Computer Science and Engineering",
+    specialisation: "AI & ML",
+    semester: 3,
+    email: "demo.student@srmap.edu.in"
   };
 
   private constructor() {
@@ -82,7 +85,6 @@ export class DatabaseService {
     if (action) {
       action.completed = !action.completed;
       action.completedAt = action.completed ? new Date().toISOString() : undefined;
-      // sync with source email
       const email = this.emails.find(e => e.id === action.emailId);
       if (email) {
         email.isActionCompleted = action.completed;
@@ -117,7 +119,7 @@ export class DatabaseService {
     this.studentProfile = { ...this.studentProfile, ...profile };
   }
 
-  public simulateNewEmail(scenario?: string): EmailData {
+  public simulateNewEmail(preset?: string): EmailData {
     this.simulatedCount++;
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -125,89 +127,140 @@ export class DatabaseService {
 
     let simulated: EmailData;
 
-    if (scenario === 'exam_moved' || this.simulatedCount % 2 === 1) {
-      simulated = {
-        id: `sim-live-${Date.now()}`,
-        sender: "examinations@northbridgeuniversity.edu",
-        senderName: "Office of the Controller of Examinations",
-        recipient: "muthu@northbridgeuniversity.edu",
-        subject: "URGENT: Tomorrow's CSE Exam Shifted to Block B Audio-Visual Hall",
-        body: `URGENT NOTICE TO ALL CSE BATCH STUDENTS:
+    switch (preset) {
+      case 'srm_acm':
+        simulated = {
+          id: `sim-srm-${Date.now()}`,
+          sender: "acm.core@srmap.edu.in",
+          senderName: "ACM Student Chapter, SRM AP",
+          recipient: "demo.student@srmap.edu.in",
+          subject: "REMINDER: ACM Student Chapter Recruitment Applications Close Tomorrow!",
+          body: `Dear Engineering Students,\n\nThis is a final reminder that applications for ACM Student Chapter Sub-Teams (R&D, Hackathons, PR, and Design) close tomorrow, September 30, at 11:59 PM.\n\nShortlisted candidates will be notified for interviews at SR Block ACM Hub.\n\nApply now: forms.srmap.edu.in/acm-recruitment-2026\n\nACM Core Committee, SRM University-AP`,
+          timestamp: now.toISOString(),
+          dateFormatted: `${formattedDate} · ${formattedTime}`,
+          category: "STUDENT CLUBS",
+          priority: "HIGH",
+          priorityScore: 82,
+          priorityReason: "ACM Student Chapter recruitment applications closing within 24 hours.",
+          categoryReason: "Student club and technical chapter application deadline.",
+          summary: "Final reminder: ACM Chapter recruitment applications close tomorrow night at 11:59 PM.",
+          actionRequired: true,
+          actionText: "Submit ACM Student Chapter application before tomorrow 11:59 PM",
+          actionDeadline: "Tomorrow, 11:59 PM",
+          deadlineDate: new Date(now.getTime() + 24 * 3600 * 1000).toISOString(),
+          location: "ACM Hub, SR Block",
+          affectedGroup: "All SEAS Students",
+          urgency: "HIGH",
+          tags: ["acm", "recruitment", "deadline", "student-clubs"],
+          isRead: false,
+          source: "demo",
+          systemOrigin: "Student Activity",
+          threadId: "thread-acm-recruitment"
+        };
+        break;
 
-Due to an unexpected power maintenance overhaul in Block C, tomorrow morning's CSE302 Database Systems examination has been immediately relocated:
+      case 'srm_closure':
+        simulated = {
+          id: `sim-srm-${Date.now()}`,
+          sender: "registrar.office@srmap.edu.in",
+          senderName: "Registrar Office, SRM University-AP",
+          recipient: "demo.student@srmap.edu.in",
+          subject: "CIRCULAR: Severe Weather Red Alert – Academic Operations Suspended",
+          body: `URGENT CAMPUS ADVISORY:\n\nIn compliance with Andhra Pradesh State Disaster Authority meteorological advisories regarding squally storm surges, all in-person classes, laboratory examinations, and administrative cells at the Neerukonda campus are suspended tomorrow.\n\nHostel mess services in Ganga and Yamuna blocks remain active 24/7. Emergency contact: Security Desk Ext 100.\n\nRegistrar, SRM University-AP, Andhra Pradesh`,
+          timestamp: now.toISOString(),
+          dateFormatted: `${formattedDate} · ${formattedTime}`,
+          category: "EMERGENCY",
+          priority: "CRITICAL",
+          priorityScore: 99,
+          priorityReason: "Severe weather red alert. Physical campus operations and labs suspended tomorrow.",
+          categoryReason: "Institutional emergency safety circular.",
+          summary: "Severe weather alert: in-person classes and labs suspended tomorrow. Hostel mess active 24/7.",
+          actionRequired: true,
+          actionText: "Remain inside hostel premises; track online makeup class schedules",
+          actionDeadline: "Tonight by 8:00 PM",
+          deadlineDate: now.toISOString(),
+          location: "Neerukonda Campus Grounds",
+          affectedGroup: "All Students and Faculty",
+          urgency: "CRITICAL",
+          tags: ["emergency", "weather", "campus-closed", "srmap"],
+          isRead: false,
+          source: "demo",
+          systemOrigin: "Administrative Portal",
+          threadId: "thread-closure-schedule"
+        };
+        break;
 
-NEW VENUE: Block B, Audio-Visual Hall (1st Floor)
-REPORTING CUTOFF: 8:35 AM sharp
-EXAM TIME: 9:00 AM – 11:00 AM
+      case 'srm_transport':
+        simulated = {
+          id: `sim-srm-${Date.now()}`,
+          sender: "communications@srmap.edu.in",
+          senderName: "Campus Transit & Fleet Operations, SRM AP",
+          recipient: "demo.student@srmap.edu.in",
+          subject: "Transport Alert: Vijayawada Express Shuttle Delayed 25 Minutes",
+          body: `Notice to all day-scholar commuters:\n\nDue to heavy traffic congestions near Prakasam Barrage, University Shuttle Bus #12 (Vijayawada Benz Circle to Neerukonda) is operating with a 25-minute delay.\n\nExpected arrival at campus: 8:50 AM. Drop-off will be at Main Gate Bay 2.\n\nTransport Directorate, SRM University-AP`,
+          timestamp: now.toISOString(),
+          dateFormatted: `${formattedDate} · ${formattedTime}`,
+          category: "TRANSPORT",
+          priority: "HIGH",
+          priorityScore: 85,
+          priorityReason: "Vijayawada express shuttle delayed by 25 mins. Arrival at 8:50 AM close to morning class cutoff.",
+          categoryReason: "Campus transit route delay notice.",
+          summary: "Vijayawada Shuttle Bus #12 delayed by 25 mins due to Barrage congestion; arrives at 8:50 AM at Gate Bay 2.",
+          actionRequired: true,
+          actionText: "Account for 25m transit delay for morning 9:00 AM class",
+          actionDeadline: "Today, Morning Commute",
+          location: "Main Gate Bay 2",
+          affectedGroup: "Vijayawada Route Commuters",
+          urgency: "HIGH",
+          tags: ["transport", "delay", "vijayawada", "bus"],
+          isRead: false,
+          source: "demo",
+          systemOrigin: "Campus Location",
+          threadId: "thread-transport-transit"
+        };
+        break;
 
-Please bring your physical admit card. Digital copies on phones will not be permitted inside Block B.
-
-Office of Examinations`,
-        timestamp: now.toISOString(),
-        dateFormatted: `${formattedDate} · ${formattedTime}`,
-        category: "EXAMS",
-        priority: "CRITICAL",
-        priorityScore: 99,
-        priorityReason: "Last-minute emergency examination venue shift to Block B AV Hall. Direct impact on tomorrow morning's exam.",
-        categoryReason: "Critical examination logistics and hall reassignment.",
-        summary: "URGENT: Tomorrow's CSE302 exam relocated to Block B Audio-Visual Hall. Arrive by 8:35 AM.",
-        actionRequired: true,
-        actionText: "Report to Block B Audio-Visual Hall by 8:35 AM for CSE302 exam",
-        actionDeadline: "Tomorrow, 8:35 AM",
-        deadlineDate: new Date(now.getTime() + 20 * 3600 * 1000).toISOString(),
-        location: "Block B – Audio-Visual Hall",
-        affectedGroup: "CSE Students",
-        urgency: "CRITICAL",
-        tags: ["urgent", "exam", "venue-change", "block-b"],
-        isRead: false,
-        source: "demo",
-        threadId: "thread-midsem-cse"
-      };
-    } else {
-      simulated = {
-        id: `sim-live-${Date.now()}`,
-        sender: "transport@northbridgeuniversity.edu",
-        senderName: "Fleet & Transport Control",
-        recipient: "muthu@northbridgeuniversity.edu",
-        subject: "ALERT: Road Blockade on Main Campus Boulevard – Alternate Route Active",
-        body: `ATTENTION ALL COMMUTERS:
-
-Due to municipal fiber optic digging near the North Traffic Circle, Campus Shuttles and Routes 2, 4, and 7 are diverted via East Bypass Road.
-
-Expect an additional 15-minute delay on all incoming buses. All drop-offs will occur at Campus Gate 4.
-
-Please budget extra travel time.`,
-        timestamp: now.toISOString(),
-        dateFormatted: `${formattedDate} · ${formattedTime}`,
-        category: "TRANSPORT",
-        priority: "HIGH",
-        priorityScore: 88,
-        priorityReason: "Road blockade and route diversion causing 15m delay with drop-off relocated to Gate 4.",
-        categoryReason: "Campus transit route diversion and schedule delay notice.",
-        summary: "Main campus boulevard blocked; buses diverted via East Bypass to Gate 4 (+15m delay).",
-        actionRequired: true,
-        actionText: "Arrive at Gate 4 and account for 15m transit delay",
-        actionDeadline: "Today, Morning Commute",
-        location: "Campus Gate 4",
-        affectedGroup: "All Transit Commuters",
-        urgency: "HIGH",
-        tags: ["transport", "diversion", "delay", "gate-4"],
-        isRead: false,
-        source: "demo",
-        threadId: "thread-transport-transit"
-      };
+      case 'srm_exam':
+      default:
+        simulated = {
+          id: `sim-srm-${Date.now()}`,
+          sender: "hod.cse@srmap.edu.in",
+          senderName: "Department of Computer Science and Engineering",
+          recipient: "demo.student@srmap.edu.in",
+          subject: "URGENT: Tomorrow's CSE 204 Exam Shifted to S202 SR Block",
+          body: `URGENT NOTICE TO B.TECH CSE BATCH 2026:\n\nDue to server diagnostics in Central Hall, tomorrow's CSE 204 (Design and Analysis of Algorithms) examination has been relocated:\n\nNEW VENUE: Room S202, SR Block\nREPORTING CUTOFF: 8:40 AM sharp\nEXAM TIME: 9:00 AM – 11:00 AM\n\nPlease bring physical hall ticket and student ID.\n\nDepartment of CSE, SEAS, SRM University-AP`,
+          timestamp: now.toISOString(),
+          dateFormatted: `${formattedDate} · ${formattedTime}`,
+          category: "EXAMS",
+          priority: "CRITICAL",
+          priorityScore: 98,
+          priorityReason: "Emergency examination venue shift to S202 SR Block. Reporting required by 8:40 AM.",
+          categoryReason: "Critical examination hall reassignment notice.",
+          summary: "URGENT: Tomorrow's CSE 204 exam relocated to Room S202, SR Block. Arrive by 8:40 AM.",
+          actionRequired: true,
+          actionText: "Report to Room S202 SR Block by 8:40 AM for CSE 204 Algorithms exam",
+          actionDeadline: "Tomorrow, 8:40 AM",
+          deadlineDate: new Date(now.getTime() + 20 * 3600 * 1000).toISOString(),
+          location: "S202, SR Block",
+          affectedGroup: "B.Tech CSE Semester 3",
+          urgency: "CRITICAL",
+          tags: ["exam", "venue-change", "cse204", "sr-block"],
+          isRead: false,
+          source: "demo",
+          systemOrigin: "Exam System",
+          threadId: "thread-cse204-exam"
+        };
+        break;
     }
 
-    // Insert at top of emails
     this.emails.unshift(simulated);
 
-    // Add action to task list
     if (simulated.actionRequired && simulated.actionText) {
       this.actions.unshift({
         id: `action-${simulated.id}`,
         emailId: simulated.id,
         title: simulated.actionText,
-        category: simulated.category,
+        category: simulated.category as any,
         priority: simulated.priority,
         deadline: simulated.actionDeadline,
         deadlineDate: simulated.deadlineDate,
@@ -218,8 +271,7 @@ Please budget extra travel time.`,
       });
     }
 
-    // Update pulse
-    this.pulseWaveform = [90, 100, 85, 95, 75, 80, 90, 60, 70, 85, 95, 100, 80, 65, 50];
+    this.pulseWaveform = [95, 100, 85, 95, 80, 85, 90, 70, 75, 90, 95, 100, 85, 70, 55];
     this.lastPulseTime = now.toISOString();
 
     return simulated;
@@ -251,35 +303,43 @@ Please budget extra travel time.`,
     const todayTimeline = [
       {
         time: "8:40 AM",
-        title: "CSE302 Exam Reporting Cutoff",
+        title: "CSE 204 Exam Reporting Cutoff (Design & Analysis of Algorithms)",
         category: "EXAMS" as Category,
         priority: "CRITICAL" as Priority,
-        emailId: "email-001",
-        location: "Block C – Hall 204"
+        emailId: "email-srm-003",
+        location: "S202, SR Block"
       },
       {
-        time: "9:00 AM",
-        title: "CSE302 Database Systems Exam",
-        category: "EXAMS" as Category,
-        priority: "CRITICAL" as Priority,
-        emailId: "email-001",
-        location: "Block C – Hall 204"
+        time: "10:00 AM",
+        title: "Hands-On Robotics Workshop (Techfest IIT Bombay)",
+        category: "EVENTS" as Category,
+        priority: "HIGH" as Priority,
+        emailId: "email-srm-002",
+        location: "S202, SR Block"
       },
       {
-        time: "1:00 PM",
-        title: "Hostel Water Supply Maintenance Window",
-        category: "HOSTEL" as Category,
-        priority: "MEDIUM" as Priority,
-        emailId: "email-014",
-        location: "Hostel Blocks B & C"
+        time: "12:00 PM",
+        title: "CEL Presentation Deck Upload Deadline",
+        category: "ACADEMICS" as Category,
+        priority: "HIGH" as Priority,
+        emailId: "email-srm-007",
+        location: "CEL Portal / Admin Block"
+      },
+      {
+        time: "3:50 PM",
+        title: "CEL Mentor Review — Rakesh Sir's Team Reporting",
+        category: "ACADEMICS" as Category,
+        priority: "HIGH" as Priority,
+        emailId: "email-srm-007",
+        location: "Directorate of Entrepreneurship"
       },
       {
         time: "5:00 PM",
-        title: "Attendance Explanation Submission",
+        title: "Attendance Condonation Form Submission Deadline",
         category: "ATTENDANCE" as Category,
         priority: "HIGH" as Priority,
-        emailId: "email-002",
-        location: "Room 114 Admin Block"
+        emailId: "email-srm-004",
+        location: "Room 114, Administrative Block"
       }
     ];
 

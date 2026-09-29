@@ -15,10 +15,11 @@ import { useApp } from '../context/AppContext';
 
 export const SettingsPage: React.FC = () => {
   const { dashboard, addToast, resetDemo } = useApp();
-  const [allowedDomains, setAllowedDomains] = useState('northbridgeuniversity.edu, srmist.edu.in, university.edu');
+  const [allowedDomains, setAllowedDomains] = useState('srmap.edu.in, srmist.edu.in');
   const [studentName, setStudentName] = useState(dashboard?.student?.name || 'Muthu');
-  const [university, setUniversity] = useState(dashboard?.student?.university || 'Northbridge University');
-  const [program, setProgram] = useState(dashboard?.student?.program || 'CSE – AI & ML');
+  const [university, setUniversity] = useState(dashboard?.student?.university || 'SRM University-AP, Andhra Pradesh');
+  const [program, setProgram] = useState(dashboard?.student?.program || 'B.Tech CSE – AI & ML (Semester 3)');
+  const [school, setSchool] = useState(dashboard?.student?.school || 'School of Engineering and Sciences (SEAS)');
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

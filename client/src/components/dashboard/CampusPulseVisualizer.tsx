@@ -27,10 +27,10 @@ export const CampusPulseVisualizer: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              CAMPUS PULSE · LIVE
+              SRM AP CAMPUS PULSE · LIVE
             </span>
             <span className="text-xs text-slate-300">
-              Northbridge University · AI Signal Coordination
+              SRM University-AP, Andhra Pradesh · Neerukonda Campus
             </span>
           </div>
 
@@ -39,7 +39,7 @@ export const CampusPulseVisualizer: React.FC = () => {
           </h2>
 
           <p className="text-sm text-slate-300 leading-relaxed">
-            University systems sent multiple notifications overnight. CampusPulse AI synchronized and prioritized your communications into clear action items.
+            Here's what is happening at SRM AP today. CampusPulse AI synchronized your communications across departmental channels into clear, prioritized actions.
           </p>
 
           {/* Quick Metrics Bar */}

@@ -1,4 +1,10 @@
 import crypto from 'crypto';
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
 import { AIProvider, AssistantQueryResult } from './AIProvider';
 import { GeminiProvider } from './GeminiProvider';
 import { FallbackAIProvider } from './FallbackAIProvider';
@@ -9,15 +15,16 @@ export class AIService {
   private provider: AIProvider;
   private cache: Map<string, EmailAnalysisResult> = new Map();
   private briefingCache: { timestamp: number; data: CampusBriefingResult } | null = null;
+  private modelName: string;
 
   private constructor() {
     const aiProviderEnv = process.env.AI_PROVIDER || 'mock';
     const geminiKey = process.env.GEMINI_API_KEY;
-    const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
     if (aiProviderEnv.toLowerCase() === 'gemini' && geminiKey && geminiKey !== 'your_gemini_api_key_here') {
-      console.log('🤖 AIService: Initializing Google Gemini AI Provider');
-      this.provider = new GeminiProvider(geminiKey, model);
+      console.log(`🤖 AIService: Initializing Google Gemini AI Provider with model: ${this.modelName}`);
+      this.provider = new GeminiProvider(geminiKey, this.modelName);
     } else {
       console.log('⚡ AIService: Initializing Deterministic Mock/Fallback AI Provider');
       this.provider = new FallbackAIProvider();
@@ -33,6 +40,28 @@ export class AIService {
 
   public getActiveProviderName(): string {
     return this.provider.name;
+  }
+
+  public getModelName(): string {
+    return this.modelName;
+  }
+
+  public async checkHealth(): Promise<{ aiProvider: string; model: string; status: string; details?: string }> {
+    if (this.provider instanceof GeminiProvider) {
+      const res = await this.provider.verifyConnection();
+      return {
+        aiProvider: 'gemini',
+        model: res.model,
+        status: res.connected ? 'connected' : 'error',
+        details: res.connected ? 'Gemini API reachable and operational' : res.message
+      };
+    }
+    return {
+      aiProvider: 'mock-fallback',
+      model: 'deterministic-heuristics',
+      status: 'active',
+      details: 'Deterministic local heuristic engine operational'
+    };
   }
 
   private computeHash(subject: string, body: string, sender: string): string {
@@ -60,7 +89,6 @@ export class AIService {
 
   public async generateBriefing(emails: EmailData[], userName: string): Promise<CampusBriefingResult> {
     const now = Date.now();
-    // Cache briefing for 5 minutes unless forced refresh
     if (this.briefingCache && now - this.briefingCache.timestamp < 5 * 60 * 1000) {
       return this.briefingCache.data;
     }

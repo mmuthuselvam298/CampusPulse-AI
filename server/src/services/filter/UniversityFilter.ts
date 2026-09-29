@@ -1,8 +1,8 @@
 export class UniversityFilter {
   private static defaultDomains: string[] = [
-    'northbridgeuniversity.edu',
-    'university.edu',
+    'srmap.edu.in',
     'srmist.edu.in',
+    'university.edu',
     'edu'
   ];
 

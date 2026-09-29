@@ -29,7 +29,7 @@ export const AIChatDrawer: React.FC = () => {
     {
       id: 'msg-welcome',
       sender: 'assistant',
-      text: "Hello Muthu! I'm **CampusPulse AI Assistant**, grounded in your indexed university communications.\n\nAsk me about tomorrow's exams, attendance status, shuttle delays, or your urgent action items.",
+      text: "Hello Muthu! I'm **CampusPulse AI Assistant for SRM University-AP**, grounded in your indexed university communications.\n\nAsk me about tomorrow's exams, attendance status, shuttle delays, or your urgent action items.",
       suggestedActions: [
         "What do I need to do today?",
         "When is my next exam?",
@@ -93,7 +93,7 @@ export const AIChatDrawer: React.FC = () => {
           </div>
           <div>
             <h3 className="text-sm font-extrabold text-slate-900 font-heading">CampusPulse AI</h3>
-            <p className="text-[10px] text-purple-700 font-semibold">Verified against Northbridge records</p>
+            <p className="text-[10px] text-purple-700 font-semibold">Verified against SRM University-AP records</p>
           </div>
         </div>
 

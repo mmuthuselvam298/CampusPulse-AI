@@ -52,50 +52,40 @@ export const DemoControlCenterModal: React.FC = () => {
 
         {/* Content Body */}
         <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-          {/* Quick Scenario 1: Simulate Live Email */}
-          <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-                Simulate Incoming Email
-              </h4>
-              <p className="text-xs text-slate-600 mt-1">
-                Injects an urgent venue relocation email in real-time, displays slide-in toast, and triggers AI analysis.
-              </p>
+          {/* Preset Buttons Grid */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-indigo-600" />
+              SRM AP Live Simulation Presets
+            </h4>
+            <p className="text-xs text-slate-500">
+              Click any verified SRM University-AP scenario to inject and prioritize an authentic communication in real-time.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+              {[
+                { id: 'srm_exam', label: 'SRM AP — Exam Alert', desc: 'CSE 204 venue shifted to S202 SR Block', color: 'border-red-200 bg-red-50/70 text-red-900 hover:bg-red-100' },
+                { id: 'srm_attendance', label: 'SRM AP — Attendance Warning', desc: 'Critical shortage warning in CSE 207 (68%)', color: 'border-amber-200 bg-amber-50/70 text-amber-900 hover:bg-amber-100' },
+                { id: 'srm_closure', label: 'SRM AP — University Closure', desc: 'Rain closure Sept 25; compensatory day Oct 10', color: 'border-purple-200 bg-purple-50/70 text-purple-900 hover:bg-purple-100' },
+                { id: 'srm_transport', label: 'SRM AP — Transport Alert', desc: 'Bypass road delay on Route 5 & 8 to Neerukonda', color: 'border-cyan-200 bg-cyan-50/70 text-cyan-900 hover:bg-cyan-100' },
+                { id: 'srm_acm', label: 'SRM AP — Club Recruitment', desc: 'ACM Chapter recruitment deadline Sept 30', color: 'border-violet-200 bg-violet-50/70 text-violet-900 hover:bg-violet-100' },
+                { id: 'robotics', label: 'SRM AP — New Workshop', desc: 'Techfest IIT Bombay Robotics Workshop at S202', color: 'border-blue-200 bg-blue-50/70 text-blue-900 hover:bg-blue-100' },
+                { id: 'ecell', label: 'SRM AP — Entrepreneurship Update', desc: 'STARTUP WARS postponed revised dates announcement', color: 'border-orange-200 bg-orange-50/70 text-orange-900 hover:bg-orange-100' },
+                { id: 'gdg', label: 'SRM AP — Event Announcement', desc: 'GDG Google Solution Hunt Challenge at X-Lab', color: 'border-emerald-200 bg-emerald-50/70 text-emerald-900 hover:bg-emerald-100' }
+              ].map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    simulateEmail(preset.id);
+                    setIsDemoControlOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all hover:scale-101 cursor-pointer flex flex-col justify-between ${preset.color}`}
+                >
+                  <p className="text-xs font-bold">{preset.label}</p>
+                  <p className="text-[11px] opacity-80 mt-1 line-clamp-1">{preset.desc}</p>
+                </button>
+              ))}
             </div>
-
-            <button
-              onClick={() => {
-                simulateEmail();
-                setIsDemoControlOpen(false);
-              }}
-              className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-xs cursor-pointer shrink-0"
-            >
-              Trigger Live Email
-            </button>
-          </div>
-
-          {/* Quick Scenario 2: Severe Weather / Campus Alert */}
-          <div className="p-4 rounded-2xl bg-red-50/60 border border-red-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 className="text-xs font-bold text-red-950 uppercase tracking-wider flex items-center gap-1.5">
-                <AlertOctagon className="w-4 h-4 text-red-600" />
-                Trigger Critical Alert
-              </h4>
-              <p className="text-xs text-slate-600 mt-1">
-                Dispatches an emergency weather advisory closing physical campus grounds and rescheduling morning exams.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                simulateEmail('exam_moved');
-                setIsDemoControlOpen(false);
-              }}
-              className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-xs cursor-pointer shrink-0"
-            >
-              Trigger Critical Alert
-            </button>
           </div>
 
           {/* Quick Scenario 3: Reset Demo Dataset */}
@@ -106,7 +96,7 @@ export const DemoControlCenterModal: React.FC = () => {
                 Reset To Clean State
               </h4>
               <p className="text-xs text-slate-600 mt-1">
-                Restores the 108 synthetic emails, marks unread notices, and clears custom tasks.
+                Restores the 107 synthetic SRM AP communications, marks unread notices, and resets custom tasks.
               </p>
             </div>
 
@@ -128,10 +118,10 @@ export const DemoControlCenterModal: React.FC = () => {
               University Domain Security Guard
             </h4>
             <p className="text-xs text-slate-600">
-              Approved Domains: <code className="font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">northbridgeuniversity.edu</code>, <code className="font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">srmist.edu.in</code>
+              Primary Institutional Domain: <code className="font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">@srmap.edu.in</code>
             </p>
             <p className="text-[11px] text-slate-500">
-              Commercial spam from Amazon, Instagram, or promotional newsletters without institutional endorsement are automatically rejected from the student priority dashboard.
+              Approved official channels: Directorate of Communications, Registrar Office, Dean SEAS, HOD CSE, E-Cell, CEL, ACM Student Chapter, and GDG on Campus. External marketing, phishing, and non-institutional spam are automatically filtered out.
             </p>
           </div>
         </div>

@@ -8,82 +8,100 @@ export const CalendarPage: React.FC = () => {
   const calendarEvents = [
     {
       id: 'cal-1',
-      title: 'CSE302 Database Systems Mid-Semester Exam',
+      title: 'CSE 204 Algorithms Mid-Term Exam (Venue Relocated)',
       date: 'Wednesday, September 30, 2026',
-      time: '9:00 AM – 11:00 AM',
+      time: '10:00 AM – 01:00 PM',
       category: 'EXAMS',
       priority: 'CRITICAL',
-      location: 'Block C – Hall 204 (Relocated)',
+      location: 'S202, SR Block (SEAS)',
       emailId: 'email-001',
       color: 'bg-red-500'
     },
     {
       id: 'cal-2',
-      title: 'Submit Signed Attendance Condonation Form',
-      date: 'Friday, October 2, 2026',
-      time: 'Due by 5:00 PM',
-      category: 'ATTENDANCE',
+      title: 'Techfest IIT Bombay Robotics Workshop',
+      date: 'Wednesday, September 30, 2026',
+      time: '10:00 AM – 04:00 PM',
+      category: 'EVENTS',
       priority: 'HIGH',
-      location: 'Room 114, Administrative Block',
-      emailId: 'email-002',
-      color: 'bg-orange-500'
-    },
-    {
-      id: 'cal-3',
-      title: 'Google Cloud Internship Application Closes',
-      date: 'Saturday, October 3, 2026',
-      time: '6:00 PM Sharp',
-      category: 'PLACEMENTS',
-      priority: 'HIGH',
-      location: 'University Placement Portal',
-      emailId: 'email-013',
-      color: 'bg-purple-500'
-    },
-    {
-      id: 'cal-4',
-      title: 'CS304 Machine Learning Assignment 2 Due',
-      date: 'Sunday, October 4, 2026',
-      time: '11:59 PM',
-      category: 'ASSIGNMENTS',
-      priority: 'MEDIUM',
-      location: 'Google Classroom / LMS',
-      emailId: 'email-004',
+      location: 'S202, SR Block (Dr. Teja Krishna Mamidi, Mech Engg)',
+      emailId: 'email-010',
       color: 'bg-indigo-500'
     },
     {
+      id: 'cal-3',
+      title: 'ACM Student Chapter Recruitment Applications Close',
+      date: 'Wednesday, September 30, 2026',
+      time: 'Due by 11:59 PM',
+      category: 'STUDENT CLUBS',
+      priority: 'MEDIUM',
+      location: 'Online Application Portal (acm.core@srmap.edu.in)',
+      emailId: 'email-011',
+      color: 'bg-violet-500'
+    },
+    {
+      id: 'cal-4',
+      title: 'CEL Mentor Review & Pitch Deck Submission',
+      date: 'Friday, October 2, 2026',
+      time: 'Due by 12:00 PM (Review 3:50 PM)',
+      category: 'ENTREPRENEURSHIP',
+      priority: 'HIGH',
+      location: 'Directorate of Entrepreneurship & Innovation',
+      emailId: 'email-013',
+      color: 'bg-amber-500'
+    },
+    {
       id: 'cal-5',
-      title: 'Fall Semester Fee Payment Deadline (No Fine)',
+      title: 'GDG Google Solution Hunt Challenge Registration',
+      date: 'Sunday, October 4, 2026',
+      time: '11:59 PM',
+      category: 'HACKATHONS',
+      priority: 'MEDIUM',
+      location: 'X-Lab Auditorium, Neerukonda',
+      emailId: 'email-014',
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'cal-6',
+      title: 'Odd Semester Tuition Fee Installment Deadline (No Fine)',
       date: 'Monday, October 5, 2026',
       time: '5:00 PM',
       category: 'FEES',
       priority: 'HIGH',
-      location: 'Accounts Office / Online Portal',
+      location: 'Student Finance Portal / Accounts Desk',
       emailId: 'email-006',
       color: 'bg-emerald-500'
     },
     {
-      id: 'cal-6',
-      title: 'National Merit-cum-Means Scholarship Portal Closes',
-      date: 'Thursday, October 8, 2026',
-      time: '5:00 PM',
-      category: 'SCHOLARSHIPS',
+      id: 'cal-7',
+      title: 'Compensatory Working Saturday (Rain Makeup Day)',
+      date: 'Saturday, October 10, 2026',
+      time: '09:00 AM – 04:30 PM (Friday Timetable)',
+      category: 'ADMINISTRATION',
       priority: 'HIGH',
-      location: 'Financial Aid Desk Room 202',
-      emailId: 'email-015',
-      color: 'bg-blue-500'
+      location: 'All SEAS Academic Blocks',
+      emailId: 'email-012',
+      color: 'bg-purple-500'
     }
   ];
 
   const exportICS = () => {
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//CampusPulse AI//University Deadlines//EN
+PRODID:-//CampusPulse AI//SRM University-AP Schedule//EN
 BEGIN:VEVENT
-SUMMARY:CSE302 Database Systems Mid-Semester Exam
-DTSTART:20260930T090000Z
-DTEND:20260930T110000Z
-LOCATION:Block C - Hall 204
-DESCRIPTION:Relocated from Block A. Report by 8:40 AM with hall ticket.
+SUMMARY:CSE 204 Algorithms Mid-Term Exam (S202 SR Block)
+DTSTART:20260930T100000Z
+DTEND:20260930T130000Z
+LOCATION:S202, SR Block, SRM University-AP
+DESCRIPTION:Relocated from Block A. Arrive by 09:30 AM with physical Hall Ticket.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:SRM AP Compensatory Working Day (Friday Timetable)
+DTSTART:20261010T090000Z
+DTEND:20261010T163000Z
+LOCATION:SRM University-AP, Neerukonda Campus
+DESCRIPTION:Compensatory working day for Sept 25 heavy rainfall closure.
 END:VEVENT
 END:VCALENDAR`;
 

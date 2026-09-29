@@ -74,7 +74,7 @@ export const Header: React.FC = () => {
               Popular Campus Searches
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {['Mid-Semester Exams', 'Attendance Shortage', 'Bus Route 4', 'Assignment 2', 'Library 24/7', 'Google Cloud Drive'].map((tag) => (
+              {['CSE 204 Exam', 'Robotics Workshop S202', 'Attendance Warning', 'ACM Recruitment', 'Bus Route 5', 'Fee Deadline Oct 5'].map((tag) => (
                 <button
                   key={tag}
                   onMouseDown={() => {
@@ -96,7 +96,7 @@ export const Header: React.FC = () => {
         {/* Quick Simulate Live Email Button */}
         <button
           onClick={() => simulateEmail()}
-          title="Simulate incoming university email for live demonstration"
+          title="Simulate incoming SRM AP university email for live demonstration"
           className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all shadow-xs hover:scale-102 cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 text-indigo-600" />
@@ -110,8 +110,8 @@ export const Header: React.FC = () => {
           title="Click to open Demo Control Center"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>DEMO MODE</span>
-          <span className="text-[10px] text-emerald-600 bg-white/70 px-1 rounded">Hackathon</span>
+          <span>SRM AP DEMO</span>
+          <span className="text-[10px] text-emerald-600 bg-white/70 px-1 rounded">SIH PS02</span>
         </button>
 
         {/* Floating AI Assistant trigger button */}

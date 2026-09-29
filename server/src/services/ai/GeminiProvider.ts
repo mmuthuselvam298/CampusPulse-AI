@@ -1,23 +1,63 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { AIProvider, AssistantQueryResult } from './AIProvider';
 import { EmailAnalysisResult, CampusBriefingResult, EmailData, ActionItem } from '../../types';
 import { FallbackAIProvider } from './FallbackAIProvider';
 
 export class GeminiProvider implements AIProvider {
   public name: 'gemini' = 'gemini';
-  private genAI: GoogleGenerativeAI | null = null;
+  private ai: GoogleGenAI | null = null;
   private fallback: FallbackAIProvider;
   private modelName: string;
 
-  constructor(apiKey?: string, modelName: string = 'gemini-1.5-flash') {
+  constructor(apiKey?: string, modelName: string = 'gemini-3.8-flash') {
     this.fallback = new FallbackAIProvider();
     this.modelName = modelName;
     if (apiKey) {
       try {
-        this.genAI = new GoogleGenerativeAI(apiKey);
+        this.ai = new GoogleGenAI({ apiKey });
       } catch (err) {
-        console.warn('Failed to initialize GoogleGenerativeAI, falling back to mock provider:', err);
+        console.warn('Failed to initialize GoogleGenAI SDK, falling back to mock provider:', err);
       }
+    }
+  }
+
+  public async verifyConnection(): Promise<{ connected: boolean; model: string; message: string }> {
+    if (!this.ai) {
+      return { connected: false, model: this.modelName, message: 'GoogleGenAI client not initialized (missing API key)' };
+    }
+    try {
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: 'Confirm operational status: reply OK'
+      });
+      return {
+        connected: true,
+        model: this.modelName,
+        message: response.text?.trim() || 'OK'
+      };
+    } catch (err: any) {
+      // Retry once on transient 503 high demand spikes
+      if (err.status === 503 || (err.message && err.message.includes('503'))) {
+        try {
+          await new Promise(r => setTimeout(r, 800));
+          const retryRes = await this.ai.models.generateContent({
+            model: this.modelName,
+            contents: 'reply OK'
+          });
+          return {
+            connected: true,
+            model: this.modelName,
+            message: retryRes.text?.trim() || 'OK'
+          };
+        } catch (retryErr: any) {
+          // Fall through to failure message
+        }
+      }
+      return {
+        connected: false,
+        model: this.modelName,
+        message: err.message || 'Connection test failed'
+      };
     }
   }
 
@@ -26,31 +66,32 @@ export class GeminiProvider implements AIProvider {
     body: string;
     sender: string;
   }): Promise<EmailAnalysisResult> {
-    if (!this.genAI) {
+    if (!this.ai) {
       return this.fallback.analyzeEmail(email);
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({
-        model: this.modelName,
-        generationConfig: { responseMimeType: "application/json" }
-      });
+      const prompt = `You are CampusPulse AI for SRM University-AP.
+Your job is to analyze university communications and transform fragmented information into prioritized actions.
+You must not invent university facts.
+If a detail is not present in the supplied email or verified campus dataset, mark it unknown.
+Use SRM AP terminology.
+Distinguish: academic notices, administrative notices, student clubs, events, exams, attendance, transport, entrepreneurship, placements, emergency notifications.
 
-      const prompt = `You are CampusPulse AI, an expert university communication intelligence system for Smart India Hackathon PS02.
-Analyze this university email and output strict JSON adhering to this exact schema:
+Analyze this SRM University-AP communication and return strict structured JSON adhering to this schema:
 {
-  "category": "ACADEMICS" | "EXAMS" | "ATTENDANCE" | "ASSIGNMENTS" | "TRANSPORT" | "EVENTS" | "FEES" | "HOSTEL" | "PLACEMENTS" | "ADMINISTRATION" | "FACILITIES" | "EMERGENCY" | "CLUBS" | "SCHOLARSHIPS" | "GENERAL",
+  "category": "ACADEMICS" | "EXAMS" | "ATTENDANCE" | "ASSIGNMENTS" | "TRANSPORT" | "EVENTS" | "FEES" | "HOSTEL" | "PLACEMENTS" | "ADMINISTRATION" | "FACILITIES" | "EMERGENCY" | "CLUBS" | "SCHOLARSHIPS" | "ENTREPRENEURSHIP" | "GENERAL",
   "priority": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
   "priorityScore": number between 1 and 99,
   "summary": "1 to 2 sentence crisp actionable summary",
-  "deadline": "formatted deadline string like 'Friday, Oct 2, 2026' or null",
+  "deadline": "formatted deadline string like 'September 30, 2026' or null",
   "actionRequired": boolean,
   "action": "clear single action item sentence or null",
   "eventDate": "ISO date string or null",
-  "location": "physical campus location or hall if mentioned or null",
-  "affectedGroup": "affected student cohort e.g. 'CSE Semester 3 Students'",
+  "location": "campus location such as 'S202, SR Block' or 'X-Lab Auditorium' if mentioned or null",
+  "affectedGroup": "affected SRM AP student group e.g. 'SEAS CSE Semester 3 Students'",
   "urgency": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
-  "reason": "Clear explanation of why this priority score was assigned based on academic/safety/deadline consequences",
+  "reason": "Clear explanation of why this priority score was assigned based on academic/safety/deadline consequences at SRM AP",
   "categoryReason": "Brief explanation of category selection"
 }
 
@@ -60,28 +101,33 @@ Subject: ${email.subject}
 Body:
 ${email.body}`;
 
-      const response = await model.generateContent(prompt);
-      const text = response.response.text();
-      const parsed = JSON.parse(text);
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: prompt
+      });
+
+      const text = response.text || '';
+      const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
 
       return {
         category: parsed.category || 'GENERAL',
         priority: parsed.priority || 'MEDIUM',
-        priorityScore: typeof parsed.priorityScore === 'number' ? parsed.priorityScore : 60,
+        priorityScore: typeof parsed.priorityScore === 'number' ? parsed.priorityScore : 65,
         summary: parsed.summary || email.subject,
         deadline: parsed.deadline || undefined,
         actionRequired: Boolean(parsed.actionRequired),
         action: parsed.action || undefined,
         eventDate: parsed.eventDate || undefined,
         location: parsed.location || undefined,
-        affectedGroup: parsed.affectedGroup || 'All Students',
+        affectedGroup: parsed.affectedGroup || 'SRM AP Students',
         urgency: parsed.urgency || parsed.priority || 'MEDIUM',
-        reason: parsed.reason || 'AI evaluated priority based on deadline and academic consequence.',
-        categoryReason: parsed.categoryReason || 'Classified based on contextual email content.',
+        reason: parsed.reason || 'AI evaluated priority based on SRM AP academic consequence and deadlines.',
+        categoryReason: parsed.categoryReason || 'Classified based on institutional communication context.',
         aiProvider: 'gemini'
       };
     } catch (error) {
-      console.warn('Gemini analysis failed or returned invalid JSON. Falling back to deterministic engine:', error);
+      console.warn('Gemini analysis failed or returned non-JSON. Falling back to deterministic engine:', error);
       const fallbackResult = await this.fallback.analyzeEmail(email);
       return {
         ...fallbackResult,
@@ -94,16 +140,11 @@ ${email.body}`;
     emails: EmailData[],
     userName: string
   ): Promise<CampusBriefingResult> {
-    if (!this.genAI) {
+    if (!this.ai) {
       return this.fallback.generateBriefing(emails, userName);
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({
-        model: this.modelName,
-        generationConfig: { responseMimeType: "application/json" }
-      });
-
       const topEmailsSummary = emails.slice(0, 10).map(e => ({
         id: e.id,
         subject: e.subject,
@@ -113,13 +154,13 @@ ${email.body}`;
         deadline: e.actionDeadline
       }));
 
-      const prompt = `You are CampusPulse AI generating the daily campus briefing for student ${userName}.
+      const prompt = `You are CampusPulse AI generating the daily campus briefing for student ${userName} at SRM University-AP.
 Based on these prioritized university communications, generate a structured JSON briefing:
 {
   "date": "Wednesday, September 30, 2026",
   "greeting": "Good morning, ${userName}",
   "studentName": "${userName}",
-  "headline": "punchy 1-sentence headline highlighting the most urgent thing",
+  "headline": "punchy 1-sentence headline highlighting the most urgent SRM AP update",
   "criticalCount": number,
   "highCount": number,
   "upcomingDeadlinesCount": number,
@@ -133,14 +174,20 @@ Based on these prioritized university communications, generate a structured JSON
       "emailId": "corresponding email id"
     }
   ],
-  "motivationalNote": "short encouraging student productivity tip"
+  "motivationalNote": "short encouraging student productivity tip tailored to SRM AP SEAS students"
 }
 
-EMAILS DATA:
+SRM AP EMAILS DATA:
 ${JSON.stringify(topEmailsSummary, null, 2)}`;
 
-      const response = await model.generateContent(prompt);
-      const parsed = JSON.parse(response.response.text());
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: prompt
+      });
+
+      const text = response.text || '';
+      const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
 
       return {
         ...parsed,
@@ -157,23 +204,18 @@ ${JSON.stringify(topEmailsSummary, null, 2)}`;
     contextEmails: EmailData[],
     actions: ActionItem[]
   ): Promise<AssistantQueryResult> {
-    if (!this.genAI) {
+    if (!this.ai) {
       return this.fallback.answerCampusQuery(query, contextEmails, actions);
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({
-        model: this.modelName,
-        generationConfig: { responseMimeType: "application/json" }
-      });
-
-      const prompt = `You are the CampusPulse AI assistant for Northbridge University students.
+      const prompt = `You are the CampusPulse AI assistant for SRM University-AP students.
 You must answer strictly using the provided indexed university email data.
-Never invent information. If information is not in the context, explicitly state: "I couldn't find that information in your university communications."
+Never invent university facts, faculty, or locations. If information is not in the context, explicitly state: "I couldn't find that information in your SRM AP communications."
 
 STUDENT QUERY: "${query}"
 
-INDEXED EMAILS SUMMARY:
+INDEXED SRM AP EMAILS:
 ${JSON.stringify(contextEmails.slice(0, 15).map(e => ({
   id: e.id,
   subject: e.subject,
@@ -188,16 +230,22 @@ ${JSON.stringify(contextEmails.slice(0, 15).map(e => ({
 PENDING ACTIONS:
 ${JSON.stringify(actions.slice(0, 8), null, 2)}
 
-Respond with JSON:
+Respond with strict JSON:
 {
-  "answer": "markdown-formatted helpful answer with bold highlights, bullets, and exact locations/times",
-  "suggestedActions": ["Action button label 1", "Action button label 2"],
+  "answer": "markdown-formatted helpful answer with bold highlights, bullets, and exact SRM AP locations/times",
+  "suggestedActions": ["Action label 1", "Action label 2"],
   "referencedEmailIds": ["email-001"],
   "toolUsed": "e.g. getUrgentMessages() or getUpcomingExams()"
 }`;
 
-      const response = await model.generateContent(prompt);
-      const parsed = JSON.parse(response.response.text());
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: prompt
+      });
+
+      const text = response.text || '';
+      const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
 
       return {
         answer: parsed.answer,
@@ -206,7 +254,7 @@ Respond with JSON:
         toolUsed: parsed.toolUsed || 'searchUniversityMessages()'
       };
     } catch (err) {
-      console.warn('Gemini query answering failed, using fallback rule engine:', err);
+      console.warn('Gemini assistant query failed, using deterministic fallback engine:', err);
       return this.fallback.answerCampusQuery(query, contextEmails, actions);
     }
   }

@@ -68,9 +68,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                     AI
                   </span>
                 </div>
-                <span className="text-[10px] font-medium text-slate-400 tracking-tight">
-                  Your campus. Prioritized.
-                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.2 rounded">
+                    SRM AP
+                  </span>
+                  <span className="text-[10px] font-medium text-slate-400 tracking-tight">
+                    Your campus. Prioritized.
+                  </span>
+                </div>
               </div>
             )}
           </div>

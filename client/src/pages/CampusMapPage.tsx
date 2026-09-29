@@ -8,58 +8,62 @@ export const CampusMapPage: React.FC = () => {
   const locations = [
     {
       id: 'loc-1',
-      name: 'Block C – Hall 204',
-      badge: 'URGENT VENUE RELOCATION',
-      badgeColor: 'bg-red-500 text-white',
-      category: 'EXAMS',
-      description: "Tomorrow's CSE302 Database Systems exam has been moved here from Block A. Arrive before 8:40 AM with hall ticket.",
+      name: 'S202, SR Block',
+      badge: 'VERIFIED SRM AP LOCATION',
+      badgeColor: 'bg-indigo-600 text-white',
+      category: 'EVENTS / EXAMS',
+      description: "Venue for Techfest IIT Bombay Robotics Workshop & CSE 204 Algorithms Mid-Term Exam. Located on the 2nd Floor of SR Block.",
+      isVerified: true,
       icon: Building,
       emailId: 'email-001',
-      lat: 12.8231,
-      lng: 80.0442
+      lat: 16.4637,
+      lng: 80.5078
     },
     {
       id: 'loc-2',
-      name: 'Gate 2 Bus Bay',
-      badge: 'TRANSIT DROP-OFF RELOCATION',
-      badgeColor: 'bg-orange-500 text-white',
-      category: 'TRANSPORT',
-      description: 'Temporary morning stop for Route 4 due to road maintenance at Main Gate. Expect 20-min delay.',
-      icon: Bus,
-      emailId: 'email-003',
-      lat: 12.8250,
-      lng: 80.0410
+      name: 'X-Lab Auditorium',
+      badge: 'VERIFIED SRM AP LOCATION',
+      badgeColor: 'bg-emerald-600 text-white',
+      category: 'TECH & HACKATHONS',
+      description: 'Venue for GDG Google Solution Hunt Challenge 2026. SRM University AP, Mangalagiri Neerukonda Tadikonda Road, 522240.',
+      isVerified: true,
+      icon: Building,
+      emailId: 'email-014',
+      lat: 16.4642,
+      lng: 80.5085
     },
     {
       id: 'loc-3',
-      name: 'Administrative Block – Room 114',
-      badge: 'ATTENDANCE CONDONATION DESK',
-      badgeColor: 'bg-orange-500 text-white',
+      name: 'Room 114, Administrative Block',
+      badge: 'DEMO CAMPUS LOCATION',
+      badgeColor: 'bg-amber-600 text-white',
       category: 'ATTENDANCE',
-      description: 'Physical submission point for signed attendance explanation forms. Closes Friday 5:00 PM.',
+      description: 'SEAS Academic Cell for physical submission of signed attendance condonation medical records.',
+      isVerified: false,
       icon: UserCheck,
       emailId: 'email-002',
-      lat: 12.8220,
-      lng: 80.0450
+      lat: 16.4630,
+      lng: 80.5070
     },
     {
       id: 'loc-4',
-      name: 'Central Library 24/7 Wing',
-      badge: 'EXTENDED HOURS',
-      badgeColor: 'bg-indigo-500 text-white',
-      category: 'FACILITIES',
-      description: 'Open 24/7 for mid-term exam revision with ground floor night study café.',
-      icon: BookOpen,
-      emailId: 'email-009',
-      lat: 12.8210,
-      lng: 80.0430
+      name: 'Main Gate Bus Bay 2',
+      badge: 'DEMO CAMPUS LOCATION',
+      badgeColor: 'bg-cyan-600 text-white',
+      category: 'TRANSPORT',
+      description: 'Campus arrival point for Route 5 & 8 buses from Vijayawada & Guntur via Mangalagiri Bypass.',
+      isVerified: false,
+      icon: Bus,
+      emailId: 'email-003',
+      lat: 16.4650,
+      lng: 80.5060
     }
   ];
 
   const [selectedLoc, setSelectedLoc] = useState(locations[0]);
 
   const openGoogleMaps = (locName: string) => {
-    const query = encodeURIComponent(`Northbridge University ${locName}`);
+    const query = encodeURIComponent(`SRM University-AP Andhra Pradesh ${locName}`);
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
   };
 
@@ -136,7 +140,7 @@ export const CampusMapPage: React.FC = () => {
                 {selectedLoc.description}
               </p>
               <span className="mt-2 text-[10px] font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                Northbridge Campus Coordinates · Pin #{selectedLoc.id}
+                SRM AP Neerukonda Campus Coordinates · Pin #{selectedLoc.id} ({selectedLoc.isVerified ? 'Verified Official' : 'Demo Location'})
               </span>
             </div>
           </div>

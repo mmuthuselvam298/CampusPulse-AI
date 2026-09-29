@@ -5,15 +5,22 @@ export type Category =
   | 'EXAMS'
   | 'ATTENDANCE'
   | 'ASSIGNMENTS'
-  | 'TRANSPORT'
+  | 'TIMETABLE'
+  | 'COURSE REGISTRATION'
   | 'EVENTS'
+  | 'TECH EVENTS'
+  | 'HACKATHONS'
+  | 'STUDENT CLUBS'
+  | 'CLUBS'
+  | 'PLACEMENTS'
+  | 'ENTREPRENEURSHIP'
   | 'FEES'
   | 'HOSTEL'
-  | 'PLACEMENTS'
+  | 'TRANSPORT'
   | 'ADMINISTRATION'
-  | 'FACILITIES'
   | 'EMERGENCY'
-  | 'CLUBS'
+  | 'FACILITIES'
+  | 'LIBRARY'
   | 'SCHOLARSHIPS'
   | 'GENERAL';
 
@@ -53,6 +60,7 @@ export interface EmailData {
   source: 'demo' | 'gmail';
   attachments?: EmailAttachment[];
   threadId?: string;
+  systemOrigin?: string;
 }
 
 export interface ActionItem {
@@ -78,6 +86,9 @@ export interface ScheduleChangeItem {
   changeType: 'LOCATION' | 'DEADLINE' | 'TIMING' | 'CANCELLATION';
   summary: string;
   emailId: string;
+  whatChanged?: string;
+  whyItMatters?: string;
+  whatYouNeedToDo?: string;
 }
 
 export interface CampusBriefingResult {
@@ -106,6 +117,8 @@ export interface DashboardData {
     name: string;
     university: string;
     program: string;
+    school?: string;
+    email?: string;
     semester: number;
   };
   metrics: {

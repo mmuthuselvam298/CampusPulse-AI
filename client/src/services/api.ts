@@ -246,25 +246,25 @@ export class ApiService {
 
     const simulated: EmailData = {
       id: `sim-local-${Date.now()}`,
-      sender: "examinations@northbridgeuniversity.edu",
-      senderName: "Office of Examinations",
-      recipient: "muthu@northbridgeuniversity.edu",
-      subject: "URGENT: Tomorrow's CSE Exam Shifted to Block B Audio-Visual Hall",
-      body: "Emergency venue change due to maintenance. Report to Block B AV Hall by 8:35 AM.",
+      sender: "hod.cse@srmap.edu.in",
+      senderName: "HOD CSE (SEAS)",
+      recipient: "demo.student@srmap.edu.in",
+      subject: "URGENT: Tomorrow's CSE 204 Exam Shifted to S202, SR Block",
+      body: "Emergency venue change due to technical lab setup. Report to S202, SR Block by 09:30 AM with physical Hall Ticket.",
       timestamp: new Date().toISOString(),
       dateFormatted: "Just Now",
       category: "EXAMS",
       priority: "CRITICAL",
       priorityScore: 99,
-      priorityReason: "Emergency venue shift right before morning examination.",
-      categoryReason: "Critical examination logistics.",
-      summary: "Tomorrow's CSE exam relocated to Block B AV Hall. Report by 8:35 AM.",
+      priorityReason: "Emergency examination venue relocation right before morning slot.",
+      categoryReason: "Critical examination administration logistics.",
+      summary: "Tomorrow's CSE 204 exam shifted to S202 SR Block. Report by 09:30 AM.",
       actionRequired: true,
-      actionText: "Report to Block B AV Hall by 8:35 AM",
-      actionDeadline: "Tomorrow, 8:35 AM",
-      location: "Block B – Audio-Visual Hall",
+      actionText: "Report to S202, SR Block by 09:30 AM with Hall Ticket",
+      actionDeadline: "Tomorrow, 09:30 AM",
+      location: "S202, SR Block",
       urgency: "CRITICAL",
-      tags: ["urgent", "exam"],
+      tags: ["urgent", "exam", "srmap"],
       isRead: false,
       source: "demo"
     };
@@ -357,8 +357,8 @@ export class ApiService {
       mode: "demo",
       student: {
         name: "Muthu",
-        university: "Northbridge University",
-        program: "CSE – AI & ML",
+        university: "SRM University-AP, Andhra Pradesh",
+        program: "B.Tech CSE – AI & ML",
         semester: 3
       },
       metrics: {
