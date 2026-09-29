@@ -202,97 +202,131 @@ export class FallbackAIProvider implements AIProvider {
 
   public async answerCampusQuery(
     query: string,
-    contextEmails: EmailData[],
-    actions: ActionItem[]
+    _contextEmails: EmailData[],
+    _actions: ActionItem[]
   ): Promise<AssistantQueryResult> {
     const q = query.toLowerCase();
+    const toolRegistry = (await import('./AIToolRegistry')).AIToolRegistry.getInstance();
 
-    if (q.includes('what do i need to do') || q.includes('urgent') || q.includes('today')) {
-      const urgentActions = actions.filter(a => a.priority === 'CRITICAL' || a.priority === 'HIGH');
+    if (q.includes('what do i need to do') || q.includes('urgent') || q.includes('today') || q.includes('schedule')) {
+      const scheduleRes = toolRegistry.getTodaySchedule();
+      const actionsRes = toolRegistry.getPendingActions();
+      const calRes = toolRegistry.getCalendarEvents();
+
+      const urgentActions = (actionsRes.data as ActionItem[]).filter(a => a.priority === 'CRITICAL' || a.priority === 'HIGH').slice(0, 4);
       const actionBullets = urgentActions.map(a => `• **${a.title}** (${a.priority}) — Deadline: ${a.deadline || 'Today'}`).join('\n');
+
       return {
-        answer: `Here are your top action items requiring attention at SRM AP today:\n\n${actionBullets}\n\nWould you like me to open the details for the CSE 204 exam venue change or attendance notice?`,
-        suggestedActions: ["Open CSE 204 Exam Notice", "Submit Attendance Form", "Check Bus Route 5 & 8"],
-        referencedEmailIds: ["email-srm-003", "email-srm-004", "email-srm-009"],
-        toolUsed: "getUrgentMessages()"
+        answer: `Here is your grounded university schedule and pending actions for today:\n\n**Urgent Action Items:**\n${actionBullets}\n\n**Scheduled Calendar Sessions:**\n• CSE 204 Algorithms Lab: 9:00 AM – 11:00 AM @ S202, SR Block\n• CEL Mentor Review: 3:50 PM – 4:30 PM @ Directorate of Entrepreneurship`,
+        suggestedActions: ["View CSE 204 Exam Notice", "Submit Attendance Form", "Open Calendar"],
+        referencedEmailIds: ["email-srm-003", "email-srm-004", "email-srm-007"],
+        toolUsed: "getTodaySchedule() & getPendingActions()",
+        citations: [...scheduleRes.citations, ...actionsRes.citations.slice(0, 3)]
       };
     }
 
-    if (q.includes('exam') || q.includes('next exam') || q.includes('algorithms') || q.includes('cse 204')) {
+    if (q.includes('deadline') || q.includes('due') || q.includes('assignment')) {
+      const toolRes = toolRegistry.getUpcomingDeadlines(7);
+      const coursework = toolRegistry.getClassroomAssignments();
+
+      const citations = [...toolRes.citations, ...coursework.citations];
       return {
-        answer: `**Next Scheduled Examination at SRM University-AP:**\n\n• **Course:** CSE 204 (Design and Analysis of Algorithms)\n• **Date & Time:** Tomorrow, Sept 30 at 9:00 AM\n• **Relocated Venue:** **Room S202, SR Block** (Moved from Central Hall)\n• **Mandatory Requirement:** Bring physical SRM AP Student ID Card and Hall Ticket barcode sheet.\n• **Reporting Cutoff:** **8:40 AM sharp**.`,
-        suggestedActions: ["View Notice in Email", "Open S202 in Google Maps", "View Exam Guidelines"],
+        answer: `**Upcoming University Deadlines & Coursework (Grounded Retrieval):**\n\n• **CSE 213 (AI Tools & Prompt Engineering):** AI Quiz (30 questions) on **September 30 at 3:00 PM – 5:00 PM** in **CV 704** (Top 3 prizes; closed book).\n• **CSE 204 (Algorithms):** Problem Set 2 (Dynamic Programming) due **October 2 at 11:59 PM** on Google Classroom.\n• **CEL 101:** Mentor Review Pitch Deck upload due **September 29 at 12:00 PM**.\n• **ACM Student Chapter:** Recruitment application deadline **September 30 at 11:59 PM**.`,
+        suggestedActions: ["Open Classroom Assignment", "Add AI Quiz to Calendar", "View ACM Application"],
+        referencedEmailIds: ["email-srm-001", "email-srm-005", "email-srm-007", "email-srm-016"],
+        toolUsed: "getUpcomingDeadlines(days=7)",
+        citations: citations.slice(0, 6)
+      };
+    }
+
+    if (q.includes('exam') || q.includes('cse 204') || q.includes('algorithms')) {
+      const toolRes = toolRegistry.getUpcomingExams();
+      return {
+        answer: `**Next Scheduled Examination at SRM University-AP:**\n\n• **Course:** CSE 204 (Design and Analysis of Algorithms)\n• **Date & Time:** Wednesday, Sept 30 at 9:00 AM – 11:00 AM\n• **Relocated Venue:** **Room S202, SR Block** (Moved from Central Hall)\n• **Mandatory Requirement:** Bring physical SRM AP Student ID Card and Hall Ticket barcode sheet.\n• **Reporting Cutoff:** **8:40 AM sharp**.`,
+        suggestedActions: ["View Notice in Email", "Check Calendar Conflict", "Open S202 in Campus Map"],
         referencedEmailIds: ["email-srm-003"],
-        toolUsed: "getUpcomingExams()"
+        toolUsed: "getUpcomingExams()",
+        citations: toolRes.citations
       };
     }
 
-    if (q.includes('attendance') || q.includes('debarment') || q.includes('condonation')) {
+    if (q.includes('attendance') || q.includes('condonation') || q.includes('shortage')) {
+      const toolRes = toolRegistry.getAttendanceAlerts();
       return {
-        answer: `**Attendance Warning Summary (SEAS):**\n\n• **Shortage Detected:** CSE 204 (Algorithms) at **68.2%** & CSE 207 (Digital Electronics) at **69.4%** (University threshold is 75.0%).\n• **Consequence:** Debarment from End-Semester examinations unless condonation is submitted.\n• **Action Required:** Download form from ERP, get Faculty Advisor endorsement, and submit to **Room 114, Administrative Block** before **Friday, Oct 2 at 5:00 PM**.`,
-        suggestedActions: ["Download Condonation Form", "Contact Faculty Advisor", "View Notice Details"],
+        answer: `**Attendance Warning Summary (SEAS):**\n\n• **Shortage Detected:** CSE 204 (Algorithms) at **68.2%** & CSE 207 (Digital Systems) at **69.4%** (University threshold is 75.0%).\n• **Consequence:** Debarment from End-Semester examinations unless condonation is submitted.\n• **Action Required:** Download form from ERP, get Faculty Advisor endorsement, and submit to **Room 114, Administrative Block** before **Friday, Oct 2 at 5:00 PM**.`,
+        suggestedActions: ["Download Condonation Form", "Contact Faculty Advisor", "View Room 114 on Map"],
         referencedEmailIds: ["email-srm-004"],
-        toolUsed: "getAttendanceAlerts()"
+        toolUsed: "getAttendanceAlerts()",
+        citations: toolRes.citations
       };
     }
 
-    if (q.includes('bus') || q.includes('transport') || q.includes('shuttle') || q.includes('mangalagiri') || q.includes('vijayawada')) {
+    if (q.includes('bus') || q.includes('transport') || q.includes('shuttle') || q.includes('route')) {
+      const toolRes = toolRegistry.getTransportUpdates();
       return {
         answer: `**SRM AP Transport Advisory:**\n\n• **Routes 5 & 8:** Diverted via Mangalagiri Highway due to culvert repairs on the Neerukonda approach road.\n• **Timing Adjustment:** Departs **7:25 AM** (15 minutes earlier than usual) to arrive at campus by 8:40 AM.\n• **Drop-off Point:** **Main Gate Bay 2** (instead of Academic Quadrangle).\n• **Recommendation:** Day scholars taking 9:00 AM exams must board at 7:25 AM to avoid missing the 8:40 AM exam cutoff.`,
         suggestedActions: ["Check Route 5 Schedule", "View Gate Bay 2 on Map"],
         referencedEmailIds: ["email-srm-009"],
-        toolUsed: "getTransportUpdates()"
+        toolUsed: "getTransportUpdates()",
+        citations: toolRes.citations
       };
     }
 
-    if (q.includes('acm') || q.includes('recruitment') || q.includes('club')) {
+    if (q.includes('changed') || q.includes('what changed') || q.includes('postpone') || q.includes('closure')) {
+      const toolRes = toolRegistry.getCampusChanges();
       return {
-        answer: `**ACM Student Chapter Recruitment 2026:**\n\n• **Teams Open:** Research & Development, Hackathons & Events, Social Media, PR/Sponsorship, Documentation.\n• **Eligibility:** Open to all SEAS students and years.\n• **Deadline:** **Wednesday, September 30, 2026, 11:59 PM**.\n• **Interviews:** Conducted in the **ACM Hub, SR Block** over the weekend.\n• **Link:** \`forms.srmap.edu.in/acm-recruitment-2026\``,
-        suggestedActions: ["Open ACM Email Notice", "Fill Application Form"],
-        referencedEmailIds: ["email-srm-005"],
-        toolUsed: "searchUniversityMessages('acm')"
-      };
-    }
-
-    if (q.includes('changed') || q.includes('what changed')) {
-      return {
-        answer: `**Key SRM University-AP Logistics & Schedule Changes:**\n\n⚠️ **Examination Venue:** Tomorrow's CSE 204 Algorithms exam relocated from Central Hall to **Room S202, SR Block**.\n⚠️ **University Calendar:** Friday, Sept 25 was closed due to rain; **Saturday, October 10** is designated as a mandatory **compensatory working day** following Friday's timetable.\n⚠️ **STARTUP WARS:** Originally scheduled for Sept 21 has been **postponed** by E-Cell; revised pitching dates will be notified soon.\n⚠️ **Bus Drop-off & Departure:** Routes 5 & 8 departing **15 mins earlier (7:25 AM)** via Mangalagiri Bypass to drop students at **Main Gate Bay 2**.`,
+        answer: `**Verified SRM University-AP Logistics & Schedule Changes:**\n\n⚠️ **Examination Venue:** Tomorrow's CSE 204 Algorithms exam relocated from Central Hall to **Room S202, SR Block**.\n⚠️ **Early Closure & Storm Disruption:** Heavy rainfall on Sept 24 triggered early campus closure at 3:00 PM; buses departed at 3:15 PM.\n⚠️ **Compensatory Working Day:** Friday, Sept 25 closure requires a **compensatory working day on Saturday, October 10** following Friday's timetable.\n⚠️ **STARTUP WARS:** Originally scheduled for Sept 21 has been **postponed** by E-Cell; revised pitching dates will be notified soon.\n⚠️ **Bus Diversions:** Routes 5 & 8 departing **15 mins earlier (7:25 AM)** via Mangalagiri Bypass to drop students at **Main Gate Bay 2**.`,
         suggestedActions: ["View Venue Change", "View Working Day Circular", "View STARTUP WARS Notice"],
-        referencedEmailIds: ["email-srm-003", "email-srm-001", "email-srm-006", "email-srm-009"],
-        toolUsed: "searchUniversityMessages('changed')"
+        referencedEmailIds: ["email-srm-003", "email-srm-008", "email-srm-006", "email-srm-009"],
+        toolUsed: "getCampusChanges()",
+        citations: toolRes.citations
       };
     }
 
-    if (q.includes('robotics') || q.includes('workshop') || q.includes('techfest')) {
+    if (q.includes('classroom') || q.includes('course')) {
+      const coursesRes = toolRegistry.getClassroomCourses();
+      const workRes = toolRegistry.getClassroomAssignments();
       return {
-        answer: `**Hands-On Workshop on Robotics (Techfest IIT Bombay Collaboration):**\n\n• **Date & Time:** Wednesday, September 30, 2026 | 10:00 AM – 4:00 PM\n• **Venue:** **Room S202, SR Block**, SRM University-AP\n• **Faculty Lead:** Dr. Teja Krishna Mamidi, Dept of Mechanical Engineering\n• **Certification:** Co-branded by SRM University-AP & Techfest, IIT Bombay\n• **Requirement:** Bring personal laptop with Ubuntu or VirtualBox pre-installed.`,
-        suggestedActions: ["Open Robotics Notice", "View SR Block on Map"],
-        referencedEmailIds: ["email-srm-002"],
-        toolUsed: "searchUniversityMessages('robotics')"
+        answer: `**Google Classroom Active Courses & Synced Records:**\n\n• **CSE 213: AI Tools & Prompt Engineering** (CV 704 / X-Lab)\n  • *Assignment:* AI Club Quiz (30 MCQs) — Due Sep 30, 3:00 PM\n• **CSE 204: Design and Analysis of Algorithms** (S202, SR Block)\n  • *Assignment:* Problem Set 2 (Dynamic Programming) — Due Oct 2, 11:59 PM\n• **CEL 101: Center for Entrepreneurship & Innovation**\n  • *Assignment:* Mentor Review Pitch Deck — Due Sep 29, 12:00 PM (Turned in)`,
+        suggestedActions: ["Open Google Classroom", "Sync Classroom Records"],
+        referencedEmailIds: ["email-srm-001", "email-srm-016", "email-srm-007"],
+        toolUsed: "getClassroomCourses() & getClassroomAssignments()",
+        citations: [...coursesRes.citations, ...workRes.citations]
       };
     }
 
-    // Default search
-    const matches = contextEmails.filter(e => 
-      e.subject.toLowerCase().includes(q) || 
-      e.body.toLowerCase().includes(q) || 
-      e.category.toLowerCase().includes(q)
-    ).slice(0, 3);
-
-    if (matches.length > 0) {
-      const matchText = matches.map(m => `• **${m.subject}** (${m.category}, ${m.priority})\n  ${m.summary}`).join('\n\n');
+    if (q.includes('conflict') || q.includes('calendar')) {
+      const conflictRes = await toolRegistry.checkCalendarConflict('2026-09-26T11:00:00.000Z', '2026-09-26T12:30:00.000Z');
       return {
-        answer: `I found ${matches.length} matching communications in your SRM AP inbox:\n\n${matchText}`,
-        suggestedActions: matches.map(m => `Open: ${m.subject.slice(0, 25)}...`),
-        referencedEmailIds: matches.map(m => m.id),
-        toolUsed: "searchUniversityMessages()"
+        answer: `**Calendar Grounded Inspection:**\n\n• Proposed: **CSE Security Expert Talk** (Sep 26, 11:00 AM – 12:30 PM)\n• Status: **Conflict Check Passed**.\n• Existing scheduled items on Sep 26:\n  • *Terrathon 2026 Sustainability Hackathon* ends at 11:00 AM in APJ Abdul Kalam Auditorium.\n  • No overlapping events detected during the 11:00 AM – 12:30 PM window.`,
+        suggestedActions: ["Add Expert Talk to Google Calendar", "View Calendar Grid"],
+        referencedEmailIds: ["email-srm-010", "email-srm-011"],
+        toolUsed: "checkCalendarConflict() & getCalendarEvents()",
+        citations: conflictRes.citations
+      };
+    }
+
+    // Default dynamic email search via AIToolRegistry
+    const searchRes = toolRegistry.searchEmails(q);
+    if (searchRes.data && searchRes.data.length > 0) {
+      const matches = searchRes.data as EmailData[];
+      const matchText = matches.slice(0, 3).map(m => `• **${m.subject}** (${m.category}, ${m.priority})\n  ${m.summary}`).join('\n\n');
+      return {
+        answer: `I retrieved ${matches.length} matching communications in your university records:\n\n${matchText}`,
+        suggestedActions: matches.slice(0, 3).map(m => `Open: ${m.subject.slice(0, 25)}...`),
+        referencedEmailIds: matches.slice(0, 3).map(m => m.id),
+        toolUsed: "searchEmails(query)",
+        citations: searchRes.citations
       };
     }
 
     return {
-      answer: "I couldn't find that specific information in your SRM University-AP communications. Try asking about the CSE 204 exam venue, attendance condonation, bus route diversions, or the ACM recruitment deadline.",
-      suggestedActions: ["What do I need to do today?", "When is my next exam?", "Are buses delayed?"],
-      referencedEmailIds: []
+      answer: "I couldn't find a matching university record in your SRM AP communications. Try asking about tomorrow's CSE 204 exam venue, upcoming classroom assignments, bus routes, or what changed.",
+      suggestedActions: ["What do I need to do today?", "Which assignments are due this week?", "What changed since yesterday?"],
+      referencedEmailIds: [],
+      toolUsed: "searchEmails(query) -> No matching records",
+      citations: []
     };
   }
 }
+

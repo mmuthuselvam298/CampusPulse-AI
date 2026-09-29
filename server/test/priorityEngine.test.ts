@@ -202,3 +202,161 @@ describe('FallbackAIProvider Tests — SRM AP Category Mapping', () => {
     assert.ok(analysis.location?.includes('S202') || analysis.location?.includes('SR Block'));
   });
 });
+
+describe('Demo Dataset Verification — Exactly 50 High-Quality Emails', () => {
+  test('confirms demo dataset contains EXACTLY 50 university emails', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dataPath = path.resolve(__dirname, '../src/data/demo-emails.json');
+    assert.ok(fs.existsSync(dataPath), 'demo-emails.json must exist');
+    const emails = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+    assert.strictEqual(emails.length, 50, `Expected exactly 50 emails, but got ${emails.length}`);
+  });
+
+  test('confirms demo dataset includes all mandatory SRM AP scenarios', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dataPath = path.resolve(__dirname, '../src/data/demo-emails.json');
+    const emails: EmailData[] = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+
+    // 1. AI security expert talk
+    const securityTalk = emails.find(e => e.subject.toLowerCase().includes('autonomous ai') || e.body.toLowerCase().includes('securing an autonomous ai'));
+    assert.ok(securityTalk, 'Autonomous AI Security talk must be present');
+
+    // 2. Early closure Sept 24 at 3 PM
+    const earlyClosure = emails.find(e => e.body.toLowerCase().includes('3:00 pm') || e.body.toLowerCase().includes('3:15 pm') || e.subject.toLowerCase().includes('early closure'));
+    assert.ok(earlyClosure, 'Early closure Sept 24 must be present');
+
+    // 3. University rain closure Sept 25 with Oct 10 compensatory working day
+    const rainClosure = emails.find(e => e.body.toLowerCase().includes('october 10') && (e.subject.toLowerCase().includes('closure') || e.body.toLowerCase().includes('closure')));
+    assert.ok(rainClosure, 'University closure with Oct 10 compensatory day must be present');
+
+    // 4. Agentic AI Hackathon (Ziro.Digital)
+    const agenticHack = emails.find(e => e.subject.toLowerCase().includes('agentic ai') || e.body.toLowerCase().includes('ziro.digital'));
+    assert.ok(agenticHack, 'Agentic AI Hackathon (Ziro.Digital) must be present');
+
+    // 5. Terrathon 2026
+    const terrathon = emails.find(e => e.subject.toLowerCase().includes('terrathon') || e.body.toLowerCase().includes('terrathon'));
+    assert.ok(terrathon, 'Terrathon 2026 must be present');
+
+    // 6. AI Quiz in CV 704
+    const aiQuiz = emails.find(e => e.subject.toLowerCase().includes('ai quiz') || e.body.toLowerCase().includes('cv 704'));
+    assert.ok(aiQuiz, 'AI Quiz in CV 704 must be present');
+
+    // 7. Robotics workshop in S202 SR Block
+    const robotics = emails.find(e => e.subject.toLowerCase().includes('robotics') && e.location?.includes('S202'));
+    assert.ok(robotics, 'Robotics workshop in S202 SR Block must be present');
+
+    // 8. STARTUP WARS postponement
+    const startupWars = emails.find(e => e.subject.toLowerCase().includes('startup wars') && (e.body.toLowerCase().includes('postponed') || e.subject.toLowerCase().includes('postponed')));
+    assert.ok(startupWars, 'STARTUP WARS postponement must be present');
+  });
+});
+
+describe('Google Calendar Integration Tests', () => {
+  test('detects conflict when proposed event overlaps existing event', async () => {
+    const { CalendarService } = await import('../src/services/google/CalendarService');
+    const calendarService = CalendarService.getInstance();
+
+    // S202 Lab is scheduled on 2026-09-30 09:00:00 to 11:00:00
+    const conflictResult = await calendarService.checkConflict(
+      '2026-09-30T09:30:00.000Z',
+      '2026-09-30T10:30:00.000Z'
+    );
+    assert.strictEqual(conflictResult.hasConflict, true);
+    assert.ok(conflictResult.conflictingEvents.length > 0);
+  });
+
+  test('reports no conflict for a free time slot', async () => {
+    const { CalendarService } = await import('../src/services/google/CalendarService');
+    const calendarService = CalendarService.getInstance();
+
+    const freeResult = await calendarService.checkConflict(
+      '2026-10-05T02:00:00.000Z',
+      '2026-10-05T03:00:00.000Z'
+    );
+    assert.strictEqual(freeResult.hasConflict, false);
+    assert.strictEqual(freeResult.conflictingEvents.length, 0);
+  });
+
+  test('prevents duplicate event insertion with identical sourceId', async () => {
+    const { CalendarService } = await import('../src/services/google/CalendarService');
+    const calendarService = CalendarService.getInstance();
+
+    const created = await calendarService.createEvent({
+      title: 'Unique Hackathon Demo Session',
+      startTime: '2026-10-06T10:00:00.000Z',
+      endTime: '2026-10-06T11:00:00.000Z',
+      sourceId: 'demo-source-dup-test-123'
+    });
+    assert.strictEqual(created.success, true);
+
+    const dupCheck = await calendarService.checkDuplicate(
+      'Unique Hackathon Demo Session',
+      '2026-10-06T10:00:00.000Z',
+      'demo-source-dup-test-123'
+    );
+    assert.strictEqual(dupCheck.isDuplicate, true);
+    assert.ok(dupCheck.existingEvent);
+  });
+});
+
+describe('Google Classroom Integration & Normalization Tests', () => {
+  test('returns normalized courses with active state and room locations', () => {
+    const { ClassroomService } = require('../src/services/google/ClassroomService');
+    const data = ClassroomService.getInstance().getDemoClassroomData();
+
+    assert.ok(data.courses.length >= 3);
+    const cse213 = data.courses.find((c: any) => c.id === 'srm-course-213');
+    assert.ok(cse213);
+    assert.strictEqual(cse213.name, 'CSE 213: AI Tools & Prompt Engineering');
+    assert.strictEqual(cse213.courseState, 'ACTIVE');
+
+    assert.ok(data.coursework.length >= 2);
+    const quiz = data.coursework.find((w: any) => w.id === 'srm-work-213-quiz');
+    assert.ok(quiz);
+    assert.strictEqual(quiz.dueDate, '2026-09-30');
+    assert.strictEqual(quiz.priority, 'CRITICAL');
+  });
+});
+
+describe('AI Tool Retrieval & Grounding Tests', () => {
+  test('AIToolRegistry retrieves real database state with citations', async () => {
+    const { AIToolRegistry } = await import('../src/services/ai/AIToolRegistry');
+    const registry = AIToolRegistry.getInstance();
+
+    const deadlines = registry.getUpcomingDeadlines(7);
+    assert.ok(deadlines.data.coursework.length > 0 || deadlines.data.emails.length > 0);
+    assert.ok(deadlines.citations.length > 0);
+    assert.ok(deadlines.citations.some(c => c.type === 'classroom' || c.type === 'gmail'));
+
+    const exams = registry.getUpcomingExams();
+    assert.ok(exams.citations.length > 0);
+    assert.ok(exams.citations.some(c => c.title.toLowerCase().includes('exam') || c.title.toLowerCase().includes('cse 204')));
+  });
+
+  test('FallbackAIProvider produces grounded answer with citations', async () => {
+    const fallback = new FallbackAIProvider();
+    const result = await fallback.answerCampusQuery('Which assignments are due this week?', [], []);
+
+    assert.ok(result.answer.length > 10);
+    assert.ok(result.citations && result.citations.length > 0, 'Must contain source citations');
+    assert.ok(result.toolUsed?.includes('getUpcomingDeadlines'));
+  });
+});
+
+describe('Gmail Normalization & Filtering Tests', () => {
+  test('decodes base64 MIME payload correctly', () => {
+    const { GmailService } = require('../src/services/gmail/GmailService');
+    const sampleText = 'Important CSE 204 Circular from SRM University-AP';
+    const encoded = Buffer.from(sampleText).toString('base64');
+    const decoded = GmailService.decodeBase64(encoded);
+    assert.strictEqual(decoded, sampleText);
+  });
+
+  test('allows Google Classroom notification emails via UniversityFilter', () => {
+    assert.strictEqual(UniversityFilter.isUniversityEmail('no-reply@classroom.google.com'), true);
+    assert.strictEqual(UniversityFilter.isUniversityEmail('classroom-notifications@google.com'), true);
+  });
+});
+

@@ -1,15 +1,22 @@
 import fs from 'fs';
 import path from 'path';
-import { EmailData, ActionItem, DashboardData, Category, Priority } from '../types';
+import { EmailData, ActionItem, DashboardData, Category, Priority, ClassroomCourse, ClassroomCoursework, ClassroomAnnouncement, GoogleCalendarEvent } from '../types';
 import { ActionExtractor } from '../services/actions/ActionExtractor';
 import { RelationshipEngine } from '../services/relationships/RelationshipEngine';
 import { AIService } from '../services/ai/AIService';
 import { UniversityFilter } from '../services/filter/UniversityFilter';
+import { ClassroomService } from '../services/google/ClassroomService';
+import { CalendarService } from '../services/google/CalendarService';
 
 export class DatabaseService {
   private static instance: DatabaseService;
   private emails: EmailData[] = [];
   private actions: ActionItem[] = [];
+  private classroomCourses: ClassroomCourse[] = [];
+  private classroomCoursework: ClassroomCoursework[] = [];
+  private classroomAnnouncements: ClassroomAnnouncement[] = [];
+  private calendarEvents: GoogleCalendarEvent[] = [];
+  private lastSyncTime: string | null = null;
   private mode: 'demo' | 'gmail' = 'demo';
   private simulatedCount = 0;
   private pulseWaveform: number[] = [45, 60, 35, 75, 95, 85, 65, 70, 90, 85, 60, 50, 80, 95, 45];
@@ -54,10 +61,28 @@ export class DatabaseService {
     // Filter out external noise emails from primary university communications
     this.emails = this.emails.filter(e => !e.isNoise && UniversityFilter.isUniversityEmail(e.sender, e.recipient));
     this.actions = ActionExtractor.extractActions(this.emails);
+
+    // Load initial Classroom and Calendar records
+    const demoClassroom = ClassroomService.getInstance().getDemoClassroomData();
+    this.classroomCourses = demoClassroom.courses;
+    this.classroomCoursework = demoClassroom.coursework;
+    this.classroomAnnouncements = demoClassroom.announcements;
+
+    // Cross-link Classroom work with emails if applicable
+    for (const email of this.emails) {
+      for (const work of this.classroomCoursework) {
+        if (work.relatedEmailId === email.id) {
+          email.relatedClassroomCourseId = work.courseId;
+          email.relatedClassroomWorkId = work.id;
+        }
+      }
+    }
+
     this.mode = 'demo';
     this.simulatedCount = 0;
     this.lastPulseTime = new Date().toISOString();
   }
+
 
   public getEmails(): EmailData[] {
     return this.emails;
@@ -118,6 +143,100 @@ export class DatabaseService {
   public updateStudentProfile(profile: Partial<typeof this.studentProfile>) {
     this.studentProfile = { ...this.studentProfile, ...profile };
   }
+
+  // --- Classroom State ---
+  public getClassroomCourses(): ClassroomCourse[] {
+    return this.classroomCourses;
+  }
+
+  public getClassroomCoursework(): ClassroomCoursework[] {
+    return this.classroomCoursework;
+  }
+
+  public getClassroomAnnouncements(): ClassroomAnnouncement[] {
+    return this.classroomAnnouncements;
+  }
+
+  public setClassroomData(
+    courses: ClassroomCourse[],
+    coursework: ClassroomCoursework[],
+    announcements: ClassroomAnnouncement[]
+  ): void {
+    this.classroomCourses = courses;
+    this.classroomCoursework = coursework;
+    this.classroomAnnouncements = announcements;
+  }
+
+  // --- Calendar State ---
+  public getCalendarEvents(): GoogleCalendarEvent[] {
+    return this.calendarEvents.length > 0 ? this.calendarEvents : [
+      {
+        id: 'cal-event-1',
+        title: 'CSE 204: Algorithms Laboratory & Theory',
+        description: 'Design and Analysis of Algorithms mandatory laboratory session.',
+        startTime: '2026-09-30T09:00:00.000Z',
+        endTime: '2026-09-30T11:00:00.000Z',
+        location: 'S202, SR Block',
+        isAllDay: false,
+        source: 'google'
+      },
+      {
+        id: 'cal-event-2',
+        title: 'CEL Mentor Review — Team Pitching',
+        description: 'In-person mentor review with Rakesh Sir at Directorate of Entrepreneurship.',
+        startTime: '2026-09-29T15:50:00.000Z',
+        endTime: '2026-09-29T16:30:00.000Z',
+        location: 'Directorate of Entrepreneurship, Level 2',
+        isAllDay: false,
+        source: 'google'
+      },
+      {
+        id: 'cal-event-3',
+        title: 'CSE Expert Talk: Securing Autonomous AI Platforms',
+        description: 'Guest talk on AI Governance, threat modeling, and OWASP Agentic Top 10.',
+        startTime: '2026-09-26T11:00:00.000Z',
+        endTime: '2026-09-26T12:30:00.000Z',
+        location: 'Online (Zoom / University Stream)',
+        isAllDay: false,
+        source: 'google'
+      },
+      {
+        id: 'cal-event-4',
+        title: 'Terrathon 2026 — Sustainability Hackathon',
+        description: 'Green computing & sustainable systems hackathon kickoff.',
+        startTime: '2026-09-26T10:00:00.000Z',
+        endTime: '2026-09-26T11:00:00.000Z',
+        location: 'APJ Abdul Kalam Auditorium',
+        isAllDay: false,
+        source: 'google'
+      }
+    ];
+  }
+
+  public setCalendarEvents(events: GoogleCalendarEvent[]): void {
+    this.calendarEvents = events;
+  }
+
+  // --- Dynamic Ingestion & Action Refresh ---
+  public addEmails(newEmails: EmailData[]): void {
+    const existingIds = new Set(this.emails.map(e => e.id));
+    const toAdd = newEmails.filter(e => !existingIds.has(e.id));
+    this.emails.unshift(...toAdd);
+    this.refreshActions();
+  }
+
+  public refreshActions(): void {
+    this.actions = ActionExtractor.extractActions(this.emails);
+  }
+
+  public getLastSyncTime(): string | null {
+    return this.lastSyncTime;
+  }
+
+  public setLastSyncTime(time: string): void {
+    this.lastSyncTime = time;
+  }
+
 
   public simulateNewEmail(preset?: string): EmailData {
     this.simulatedCount++;

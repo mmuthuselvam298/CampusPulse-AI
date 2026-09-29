@@ -15,7 +15,7 @@ export class UniversityFilter {
   }
 
   /**
-   * Checks whether an email originates from or belongs to an authorized university domain.
+   * Checks whether an email originates from an authorized university domain or Google Classroom notification.
    */
   public static isUniversityEmail(sender: string, recipient?: string): boolean {
     const allowed = UniversityFilter.getAllowedDomains();
@@ -26,16 +26,26 @@ export class UniversityFilter {
 
     const senderDomain = extractDomain(sender);
     const recipientDomain = recipient ? extractDomain(recipient) : '';
+    const senderLower = sender.toLowerCase();
 
-    // Check sender
+    // 1. Google Classroom notifications are allowed as they correspond to academic coursework
+    if (
+      senderLower.includes('classroom.google.com') ||
+      senderLower.includes('google.classroom') ||
+      senderLower.includes('classroom-notifications@google.com') ||
+      senderLower.includes('no-reply@classroom.google.com')
+    ) {
+      return true;
+    }
+
+    // 2. Check sender domain against allowed university domains
     const senderMatches = allowed.some(d => senderDomain === d || senderDomain.endsWith(`.${d}`));
     if (senderMatches) return true;
 
-    // Check recipient if sender is university-adjacent
+    // 3. Check recipient if sender is university-adjacent
     if (recipientDomain) {
       const recipientMatches = allowed.some(d => recipientDomain === d || recipientDomain.endsWith(`.${d}`));
-      // If sent to university email and looks institutional
-      if (recipientMatches && (sender.includes('admin') || sender.includes('dept') || sender.includes('edu'))) {
+      if (recipientMatches && (senderLower.includes('admin') || senderLower.includes('dept') || senderLower.includes('edu') || senderLower.includes('classroom'))) {
         return true;
       }
     }
@@ -60,3 +70,4 @@ export class UniversityFilter {
     return "Non-institutional domain filtered out by University Domain Security Policy";
   }
 }
+

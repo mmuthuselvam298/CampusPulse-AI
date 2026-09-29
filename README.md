@@ -9,42 +9,34 @@
 
 ---
 
-## 📌 Executive Summary & The Problem
+## 📌 Problem Statement (PS02): "When Systems Don't Understand Each Other"
 
-University students receive dozens of high-stakes communications daily across fragmented, disconnected departmental portals and departmental email addresses:
-- `communications@srmap.edu.in` (Directorate of Communications — Institutional workshops, symposia, Techfest IIT Bombay events)
-- `registrar.office@srmap.edu.in` (Registrar Office — Heavy rain university closures, compensatory working days, administrative circulars)
-- `dean.seas@srmap.edu.in` (Dean, School of Engineering and Sciences — Academic alerts, debarment criteria)
-- `hod.cse@srmap.edu.in` (HOD Computer Science & Engineering — Mid-term exam venue shifts, lab reallocations)
-- `ecell@srmap.edu.in` (Directorate of Entrepreneurship & Innovation — STARTUP WARS postponements, incubator pitches)
-- `cel@srmap.edu.in` (Center for Entrepreneurial Learning — Mentor review schedules, slide deck cutoffs)
-- `acm.core@srmap.edu.in` (ACM Student Chapter — R&D, Events, PR, Social Media team recruitments)
-- `students.seas@srmap.edu.in` (SEAS Student Notices — Attendance warnings, fee installment reminders)
+In modern universities, essential student information is severely fragmented across disconnected silos:
+- **Gmail:** Urgent circulars, exam relocations, rain closure advisories, fee deadlines, club recruitments.
+- **Google Classroom:** Assignment postings, quiz announcements, rubrics, and submission tracking.
+- **Google Calendar:** Personal lectures, project reviews, and exam slots.
+- **Administrative Portals:** Transport schedules, hostel mess advisories, and condonation requirements.
 
-### The Core Dilemma (PS02):
-The problem is **not** that university information is unavailable.  
-The problem is that information is:
-1. **Fragmented across departmental silos**
-2. **Unstructured and buried in verbose circulars**
-3. **Difficult to prioritize against competing deadlines**
-4. **Lacking contextual awareness between related notices**
-5. **Never automatically converted into actionable student tasks**
+### Why Existing Solutions Fail
+1. **Email Overload:** Important notifications get buried among newsletters and routine announcements.
+2. **Disconnected Context:** A Google Classroom assignment is announced, an email notification is sent, and an exam is rescheduled in another email—yet no system connects them.
+3. **No Explainable Priority:** Students miss deadlines because emails are ranked merely by timestamp.
+4. **Hallucination Risk:** Generic AI chat bots invent faculty, room numbers, and dates when answering student questions.
 
 ---
 
-## ⚡ The CampusPulse Transformation
+## ⚡ The CampusPulse AI Intelligence Layer
 
-$$\text{DISCONNECTED UNIVERSITY SYSTEMS} \longrightarrow \text{CONNECTED STUDENT CONTEXT}$$
-
-$$\text{EMAIL} \longrightarrow \text{TIMETABLE} \longrightarrow \text{LOCATION} \longrightarrow \text{DEADLINE} \longrightarrow \text{STUDENT ACTION}$$
-
-CampusPulse AI coordinates disconnected SRM University-AP communications into:
-1. **SRM AP Campus Pulse:** Real-time visual waveform of incoming university activity.
-2. **Explainable 13-Factor Priority Engine:** Transparent scoring (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) explaining *why* a notice matters.
-3. **Connected Campus Information (PS02):** Connects Email (Venue shift), Timetable (CSE 204 exam slot), Location (S202, SR Block), and Deadline into a single unified student action.
-4. **"What Changed?" & Thread Clustering:** Detects cross-departmental diffs (e.g. Sept 25 heavy rain closure with Oct 10 compensatory working day; STARTUP WARS postponement; CSE 204 venue move to S202 SR Block; Bus Route 5 & 8 delay).
-5. **Campus Map & Google Calendar Integration:** Verified coordinates for S202 SR Block, X-Lab Auditorium, Room 114 Admin Block, and Bus Bay 2.
-6. **Gemini Campus Assistant:** Conversational query agent equipped with grounded SRM AP campus context using Google's newest `@google/genai` SDK (`gemini-3.8-flash`).
+CampusPulse AI acts as a **unified student communication intelligence layer**. The student connects their Google account once, and CampusPulse:
+1. **Reads relevant university Gmail messages** (Read-Only).
+2. **Reads Google Classroom courses, coursework, and announcements** (Read-Only).
+3. **Reads Google Calendar events** and identifies conflicts.
+4. **Extracts deadlines, actionable tasks, room changes, and schedule shifts**.
+5. **Prioritizes what matters to the student** using an explainable 13-factor priority engine.
+6. **Cross-links related information across different systems** (e.g. linking Classroom assignment notifications in Gmail directly to the corresponding Classroom coursework).
+7. **Answers student questions using 20 grounded retrieval tools** (`searchEmails`, `getUpcomingDeadlines`, `getClassroomAssignments`, `getTodaySchedule`, `checkCalendarConflict`, etc.) with interactive source citations.
+8. **Explicit Google Calendar Creation:** Checks for schedule overlaps and duplicates, displays a conflict warning modal, and creates the calendar event *only after explicit student confirmation*.
+9. **Provides a pristine Demo Mode** with **EXACTLY 50 high-quality SRM AP communications** covering all realistic scenarios without needing Google credentials.
 
 ---
 
@@ -52,33 +44,59 @@ CampusPulse AI coordinates disconnected SRM University-AP communications into:
 
 ```mermaid
 graph TD
-    subgraph Ingestion["1. Ingestion Layer"]
-        A[Gmail API - Read-Only OAuth] --> C[University Domain Filter: @srmap.edu.in]
-        B[Demo Mode - 107 Synthetic SRM AP Emails] --> C
+    subgraph DataSources["1. Multi-Source Ingestion Layer"]
+        A[Gmail API - Read-Only] --> D[University Domain Filter: @srmap.edu.in]
+        B[Google Classroom API - Read-Only] --> E[Coursework & Announcement Ingestion]
+        C[Google Calendar API - Two-Way] --> F[Schedule & Conflict Detector]
+        Z[Demo Mode - Exactly 50 SRM AP Records] --> D
     end
 
-    subgraph Intelligence["2. AI & Priority Engine"]
-        C --> D[SHA-256 Content Hash Cache]
-        D --> E{AI Provider}
-        E -->|API Key Configured| F[Google GenAI SDK: gemini-3.8-flash]
-        E -->|Offline / Fallback| G[Deterministic Heuristic Engine]
-        F --> H[13-Factor Priority Evaluator]
-        G --> H
+    subgraph Normalization["2. Normalization & Deduplication"]
+        D --> G[Message Normalization & MIME Decoder]
+        E --> H[Classroom Course & Assignment Normalizer]
+        F --> I[Calendar Event Normalizer]
+        G & H & I --> J[Cross-System Deduplication & Linking]
     end
 
-    subgraph Synthesis["3. Cross-System Synthesis (PS02)"]
-        H --> I[Relationship Engine: What Changed?]
-        H --> J[Action Extractor: Task Generator]
-        H --> K[Location & Calendar Resolver]
+    subgraph Intelligence["3. AI & Priority Engine"]
+        J --> K[PriorityEngine: 13-Factor Explainable Scoring]
+        J --> L[ActionExtractor: Structured Task Generation]
+        J --> M[RelationshipEngine: What Changed? Detection]
+        J --> N[AIToolRegistry: 20 Grounded Tool Endpoints]
+        N --> O[Gemini 3.8 Flash via @google/genai]
+        N --> P[Deterministic Fallback AI Provider]
     end
 
-    subgraph Experience["4. Presentation & Interaction Layer"]
-        I --> L[Dashboard & SRM AP Campus Pulse]
-        J --> M[Priority Inbox & Detail Panel]
-        K --> N[Interactive Campus Map & Google Calendar]
-        L --> O[Conversational Campus Assistant]
+    subgraph Presentation["4. Student Command Center"]
+        K & L & M --> Q[Dashboard & Campus Pulse Waveform]
+        H & J --> R[Google Classroom Intelligence Page]
+        F & J --> S[Calendar Page & Conflict Warning Modal]
+        O & P --> T[Conversational Assistant with Source Citations]
+        J --> U[Connected Services Status Center]
     end
 ```
+
+---
+
+## 🔐 Google OAuth Architecture & Security
+
+CampusPulse AI implements **strict server-side OAuth 2.0**.
+- **One Google Login:** A single authorization screen authorizes all required read-only and calendar creation permissions.
+- **Server-Side Token Storage:** Refresh tokens and access tokens are held securely in server memory and are **never** returned to the frontend or stored in `localStorage`.
+- **Zero Client Secrets in React:** Frontend code only interacts with the backend session API.
+- **Read-Only Enforced:** Gmail and Google Classroom APIs are strictly read-only (`gmail.readonly`, `classroom.courses.readonly`, `classroom.coursework.me.readonly`, `classroom.announcements.readonly`). CampusPulse cannot modify, send, or delete student emails or coursework.
+- **Explicit Confirmation for Calendar:** CampusPulse **never** silently creates Google Calendar events. Event creation occurs only after conflict/duplicate verification and explicit confirmation.
+
+### Required OAuth Scopes
+- `openid`
+- `email`
+- `profile`
+- `https://www.googleapis.com/auth/gmail.readonly`
+- `https://www.googleapis.com/auth/classroom.courses.readonly`
+- `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
+- `https://www.googleapis.com/auth/classroom.announcements.readonly`
+- `https://www.googleapis.com/auth/classroom.student-submissions.me.readonly`
+- `https://www.googleapis.com/auth/calendar.events`
 
 ---
 
@@ -86,158 +104,126 @@ graph TD
 
 | Layer | Technologies Used |
 | :--- | :--- |
-| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide Icons, Recharts, Canvas Confetti |
-| **Backend API** | Node.js v24, Express, TypeScript, tsx, CORS |
-| **AI Integration** | Google GenAI SDK (`@google/genai`), `gemini-3.8-flash`, Structured JSON Schema |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide Icons, Recharts |
+| **Backend API** | Node.js v24, Express, TypeScript, `tsx`, `googleapis`, `sanitize-html` |
+| **AI Integration** | Google GenAI SDK (`@google/genai`), `gemini-3.8-flash`, Grounded Function Calling & Retrieval |
 | **Fallback AI** | Deterministic Regex & Heuristic Rule Engine (100% offline capability) |
-| **Security & Sanitization** | `sanitize-html`, Read-only Gmail Scope, University Domain Whitelisting (`@srmap.edu.in`) |
-| **Integrations** | Google Cloud Gmail API, Google Maps, Google Calendar (.ics RFC 5545) |
+| **Security** | Server-side OAuth token store, Strict Domain Filtering (`@srmap.edu.in`), Sanitized HTML rendering |
+| **Integrations** | Google Cloud Gmail API, Google Classroom API, Google Calendar API, Google Maps |
 
 ---
 
-## 🎯 Dual Product Modes
+## ⚙️ Environment Variables
 
-### Mode A: Real Gmail Mode
-- Connects to Google Workspace / Gmail using OAuth 2.0.
-- **Strict Read-Only Scope:** `https://www.googleapis.com/auth/gmail.readonly`.
-- **Zero-Modification Privacy Guarantee:** The system **never** composes, modifies, deletes, or forwards emails.
-- **Domain Gatekeeper:** Filters inbox to authorized university suffixes (`@srmap.edu.in`, `@srmist.edu.in`), rejecting external commercial solicitations and e-commerce receipts.
+Configure your local `.env` in the project root (never commit secrets to version control):
 
-### Mode B: SRM AP Demo Mode (Hackathon Showcase)
-- Contains **107 controlled, highly realistic synthetic university communications**.
-- Preloaded with authentic SRM University-AP demonstration scenarios:
-  1. 🔴 **CRITICAL:** `URGENT: Examination Venue Changed for Tomorrow` (CSE 204 moved to S202, SR Block)
-  2. 🔴 **CRITICAL:** `CIRCULAR: University Closure on September 25 due to Heavy Rainfall` (Compensatory day Oct 10)
-  3. 🟠 **HIGH:** `Attendance Shortage Notice – CSE 204 & CSE 207` (Medical condonation due Friday 5 PM at Room 114)
-  4. 🟠 **HIGH:** `Transport Alert: Route 5 & 8 Delayed via Mangalagiri Bypass` (Main Gate Bay 2 arrival)
-  5. 🟡 **MEDIUM:** `ACM Student Chapter Recruitment 2026 — Applications Open` (Deadline Sept 30)
-  6. 🟠 **HIGH:** `STARTUP WARS 2026 Postponed` (E-Cell schedule update)
-  7. 🟠 **HIGH:** `CEL Presentation Submission & Mentor Review Schedule` (Rakesh Sir & Thirumali Sir teams)
-  8. 🟡 **MEDIUM:** `Techfest IIT Bombay & SRM AP Joint Robotics Workshop` (S202 SR Block)
-  9. 🟡 **MEDIUM:** `Google Solution Hunt Challenge 2026 — GDG on Campus` (X-Lab Auditorium)
-  10. 🟠 **HIGH:** `Odd Semester Tuition Fee Installment Deadline` (No fine cutoff Oct 5)
-
----
-
-## ⚖️ The 13-Factor Explainable Priority System
-
-Rather than acting as an opaque black box, CampusPulse calculates a deterministic 0–100 score and explains the exact rationale to the student:
-
-1. **Deadline Proximity:** Deadlines within 24 hours receive maximum urgency weighting.
-2. **Immediate Action Required:** Explicit calls for submission (`must report`, `condonation form`).
-3. **Direct Student Impact:** Personal notices addressed to the individual student vs broadcast newsletters.
-4. **Academic Consequences:** Risk of exam debarment, course failure, or grade freezing.
-5. **Financial Consequences:** Late payment surcharges or scholarship cancellation.
-6. **Safety Implications:** Heavy rainfall closures, weather advisories, or road waterlogging.
-7. **Transport Disruption:** Route cancellations, shuttle delays, and gate changes.
-8. **Examination Impact:** Venue relocations, hall ticket stamping, admit card criteria.
-9. **Attendance Shortage:** Cumulative hours falling below the mandatory 75% threshold.
-10. **Explicit Urgency Keywords:** `URGENT`, `MANDATORY`, `DEBARMENT`, `IMMEDIATE`, `CLOSURE`.
-11. **Student Cohort Size:** Scope of impacted student branches (e.g. SEAS B.Tech CSE).
-12. **Mandatory Action Presence:** Requires student signature, physical report, or upload.
-13. **Non-Compliance Penalties:** Disqualification risks if ignored.
-
----
-
-## 🚀 Getting Started Locally
-
-### Prerequisites
-- Node.js **v20+** (Tested on v24.13)
-- npm **v10+**
-
-### 1. Clone & Install Dependencies
-```bash
-git clone <repo-url>
-cd "CampusPulse AI"
-
-# Install root, client, and server dependencies in one command
-npm run install:all
-```
-
-### 2. Configure Environment Variables
-Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-
-To enable Live Google Gemini:
 ```env
+PORT=3001
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
+
+# Application Mode: demo | gmail
+APP_MODE=demo
+
+# AI Provider: gemini | mock
 AI_PROVIDER=gemini
-GEMINI_API_KEY=your_actual_gemini_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-3.8-flash
+
+# University Domain Filter (Comma-separated)
 ALLOWED_UNIVERSITY_DOMAINS=srmap.edu.in
-```
 
-### 3. Run Development Servers
-```bash
-# Starts both Express backend (Port 3001) and Vite frontend (Port 5173)
-npm run dev
-```
+# Google OAuth Credentials
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+GOOGLE_REDIRECT_URI=http://localhost:3001/api/google/oauth/callback
 
-Open your browser to:
-```
-http://localhost:5173
+# Google Maps API (Optional for enhanced live map rendering)
+GOOGLE_MAPS_API_KEY=
 ```
 
 ---
 
-## 🧪 Running Automated Tests
+## 🚀 Running the Project Locally
 
+### 1. Install Dependencies
+```bash
+npm install
+npm --prefix server install
+npm --prefix client install
+```
+
+### 2. Run Tests
+CampusPulse AI includes 20 comprehensive unit and integration tests:
 ```bash
 npm test
 ```
 
-Test output:
-```
-▶ PriorityEngine Tests — SRM AP Scenarios
-  ✔ evaluates urgent exam venue change to S202 SR Block as CRITICAL
-  ✔ evaluates university rain closure circular as CRITICAL
-  ✔ evaluates attendance shortage warning as HIGH priority
-  ✔ evaluates ACM recruitment deadline as MEDIUM priority with actionable deadline
-  ✔ evaluates monthly general newsletter as LOW priority
-▶ UniversityFilter Tests — SRM AP Domain Security Policy
-  ✔ allows official SRM AP institutional email addresses
-  ✔ rejects external commercial and promotional noise
-▶ ActionExtractor Tests
-  ✔ extracts actionable tasks with deadlines for SRM AP student
-▶ RelationshipEngine — "What Changed?" Tests
-  ✔ detects schedule changes and postponements in university communications
-▶ FallbackAIProvider Tests — SRM AP Category Mapping
-  ✔ extracts structured analysis deterministically for SRM AP notices
-ℹ tests 10 | pass 10 | fail 0
+### 3. Build for Production
+```bash
+npm run build
 ```
 
----
-
-## 🎬 Hackathon Presentation Scenario (PS02)
-
-1. **Dashboard & SRM AP Campus Pulse:**
-   - Visualizes 107 university communications analyzed across 12 departments.
-   - Shows **Connected Campus Information**: Email $\rightarrow$ Timetable $\rightarrow$ Location $\rightarrow$ Action.
-2. **Open Critical Notice ("Exam Venue Relocation"):**
-   - AI summary highlights venue moved from Central Hall to Room S202, SR Block.
-   - Click **"Open in Google Maps"** for instant navigation to SR Block, Neerukonda.
-3. **Inspect "What Changed?":**
-   - Highlights the heavy rain closure on Sept 25 and compensatory working day on Oct 10.
-   - Displays: **WHAT CHANGED?**, **WHY IT MATTERS**, and **WHAT YOU NEED TO DO**.
-4. **Simulate Incoming Notice:**
-   - Click **"Simulate Email"** or open the **Demo Control Center**.
-   - Select `SRM AP — Club Recruitment` (`ACM Applications Close Tomorrow`).
-   - Gemini classifies it as `STUDENT CLUBS`, calculates Priority `HIGH`, and inserts an immediate action task.
-5. **Ask the Campus Assistant:**
-   - Ask *"What do I need to do today?"*
-   - Returns prioritized SRM AP action items with zero hallucination.
+### 4. Start the Application
+Run both backend and frontend concurrently:
+```bash
+npm run dev
+```
+- **Frontend Command Center:** [http://localhost:5173](http://localhost:5173)
+- **Backend API Server:** [http://localhost:3001](http://localhost:3001)
 
 ---
 
-## 🔒 Security & Privacy
+## 🏆 Judge Demonstration Flow (SIH PS02)
 
-- **Safe HTML Sanitization:** All email bodies pass through `sanitize-html` to prevent stored XSS attacks.
-- **Zero API Key Leakage:** The Gemini API key is accessed strictly by backend services and is never exposed to client bundles or git commits.
-- **Domain Gatekeeper:** Enforces institutional boundary filtering for `@srmap.edu.in`.
-- **Zero Modification:** Strictly read-only Gmail access with zero compose/delete permissions.
+1. **Immediate Out-of-the-Box Value (No Setup Required):**
+   - Open [http://localhost:5173](http://localhost:5173).
+   - Dashboard instantly displays student profile (Muthu, B.Tech CSE AI & ML, Sem 3), real-time Campus Pulse waveform, and top priorities.
+2. **Transparent Priority Reasoning:**
+   - Click on the CRITICAL alert for **CSE 204 Exam Venue Change**.
+   - Review AI Summary, "Why It Matters" (Academic consequence, less than 24 hours remaining, venue relocated to S202 SR Block), and extracted action item.
+3. **Cross-System "What Changed?" Engine:**
+   - Navigate to **What Changed?** in the sidebar.
+   - Observe detected logistics changes: Sept 24 3:00 PM early closure (rain disruption), Sept 25 closure with Oct 10 compensatory working day, STARTUP WARS postponement, and Bus Route 5/8 diversions.
+4. **Google Classroom Intelligence:**
+   - Open **Google Classroom** page.
+   - Inspect active enrolled courses (CSE 213, CSE 204, CEL 101, CSE 207), upcoming assignments with countdown tags, and click **Linked Gmail Notice** to open the associated notification email.
+5. **Grounded AI Assistant with Tool Retrieval:**
+   - Click the bottom-right **Ask CampusPulse** floating button or open **AI Assistant**.
+   - Ask: *"What do I need to do today?"*
+   - Ask: *"Which assignments are due this week?"*
+   - Ask: *"Was the class or event postponed?"*
+   - Observe how the assistant dynamically calls `AIToolRegistry` tools and displays interactive **Grounded Source Citations** (Gmail, Classroom, Calendar) rather than hallucinating.
+6. **Conflict-Protected Google Calendar Event Creation:**
+   - Navigate to **Calendar & Conflict**.
+   - Under AI-Detected Campus Events, find **CSE Expert Talk: Securing Autonomous AI Platforms**.
+   - Click **[ Add to Google Calendar ]**.
+   - A modal performs real-time duplicate and conflict checking against scheduled campus events.
+   - Click **[ Confirm & Add to Calendar ]** to safely schedule the event.
+7. **Connected Accounts & Live Google Sync:**
+   - Navigate to **Connected Accounts**.
+   - Review the status of Google Account, Gmail, Classroom, Calendar, Gemini 3.8 Flash, and Campus Map.
+   - Click **[ Connect Google ]** to test the OAuth flow or click **[ Sync Everything ]** to run the complete ingestion, deduplication, and AI priority recalculation pipeline.
 
 ---
 
-## 📄 License
-MIT License. Built for Smart India Hackathon & SRM University-AP Academic Excellence.
+## 🧪 Testing & Verification
+
+The test suite (`server/test/priorityEngine.test.ts`) verifies:
+1. **Gmail normalization:** Base64 MIME decoding and header extraction.
+2. **Gmail deduplication & idempotency:** Repeated syncs do not create duplicate records.
+3. **University filtering:** Institutional domain verification and Classroom notification whitelisting.
+4. **Classroom normalization:** Active courses, coursework due dates, and announcement linking.
+5. **Calendar conflict detection:** Overlapping time window calculation.
+6. **Calendar duplicate prevention:** Prevents identical event insertion.
+7. **Priority calculation:** 13-factor explainable scoring.
+8. **Action extraction:** Actionable task generation with deadlines.
+9. **Relationship detection:** Topic clustering and schedule change detection.
+10. **Demo dataset count:** Confirms EXACTLY 50 high-quality SRM AP communications.
+11. **AI tool retrieval:** Dynamic tool execution through `AIToolRegistry`.
+12. **Source grounding:** Traceable citations attached to AI answers.
+
+Run tests anytime with:
+```bash
+npm test
+```

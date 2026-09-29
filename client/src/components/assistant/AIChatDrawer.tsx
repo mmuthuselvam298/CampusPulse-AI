@@ -20,8 +20,10 @@ interface Message {
   suggestedActions?: string[];
   referencedEmailIds?: string[];
   toolUsed?: string;
+  citations?: any[];
   time: string;
 }
+
 
 export const AIChatDrawer: React.FC = () => {
   const { isAssistantOpen, setIsAssistantOpen, openEmailById } = useApp();
@@ -73,6 +75,7 @@ export const AIChatDrawer: React.FC = () => {
         suggestedActions: response.suggestedActions,
         referencedEmailIds: response.referencedEmailIds,
         toolUsed: response.toolUsed,
+        citations: response.citations,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, aiMsg]);
@@ -135,8 +138,44 @@ export const AIChatDrawer: React.FC = () => {
                 {msg.text}
               </div>
 
+              {/* Source Citations */}
+              {msg.citations && msg.citations.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-slate-200/60 space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Grounded Sources:</span>
+                  <div className="space-y-1">
+                    {msg.citations.map((cite, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          if (cite.id && cite.id.startsWith('email-')) {
+                            openEmailById(cite.id);
+                          }
+                        }}
+                        className={`p-1.5 rounded-lg border text-[10px] transition-all ${
+                          cite.id && cite.id.startsWith('email-') ? 'cursor-pointer hover:border-indigo-300 bg-white/80' : 'bg-white/50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] uppercase font-bold ${
+                            cite.type === 'classroom' ? 'bg-emerald-100 text-emerald-700' :
+                            cite.type === 'calendar' ? 'bg-purple-100 text-purple-700' :
+                            cite.type === 'gmail' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {cite.type}
+                          </span>
+                          <span className="truncate">{cite.title}</span>
+                        </div>
+                        {cite.snippet && (
+                          <p className="text-[9px] text-slate-500 line-clamp-1 mt-0.5">{cite.snippet}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Referenced Emails */}
-              {msg.referencedEmailIds && msg.referencedEmailIds.length > 0 && (
+              {msg.referencedEmailIds && msg.referencedEmailIds.length > 0 && (!msg.citations || msg.citations.length === 0) && (
                 <div className="mt-3 pt-2 border-t border-slate-200/60 flex flex-wrap gap-1.5">
                   <span className="text-[10px] font-bold text-slate-500 w-full">Referenced Notices:</span>
                   {msg.referencedEmailIds.map(eid => (
@@ -151,6 +190,7 @@ export const AIChatDrawer: React.FC = () => {
                   ))}
                 </div>
               )}
+
 
               {/* Suggested Action Chips */}
               {msg.suggestedActions && msg.suggestedActions.length > 0 && (

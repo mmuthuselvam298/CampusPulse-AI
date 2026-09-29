@@ -204,38 +204,86 @@ ${JSON.stringify(topEmailsSummary, null, 2)}`;
     contextEmails: EmailData[],
     actions: ActionItem[]
   ): Promise<AssistantQueryResult> {
+    const { AIToolRegistry } = await import('./AIToolRegistry');
+    const toolRegistry = AIToolRegistry.getInstance();
+    const q = query.toLowerCase();
+
+    let retrievedData: any = null;
+    let toolUsed = 'searchEmails()';
+    let citations: any[] = [];
+
+    // Dynamically retrieve only required application state via tools
+    if (q.includes('what do i need to do') || q.includes('urgent') || q.includes('today') || q.includes('schedule')) {
+      const scheduleRes = toolRegistry.getTodaySchedule();
+      const actionsRes = toolRegistry.getPendingActions();
+      retrievedData = { schedule: scheduleRes.data, actions: actionsRes.data };
+      citations = [...scheduleRes.citations, ...actionsRes.citations.slice(0, 3)];
+      toolUsed = 'getTodaySchedule() & getPendingActions()';
+    } else if (q.includes('deadline') || q.includes('due') || q.includes('assignment')) {
+      const toolRes = toolRegistry.getUpcomingDeadlines(7);
+      const coursework = toolRegistry.getClassroomAssignments();
+      retrievedData = { deadlines: toolRes.data, coursework: coursework.data };
+      citations = [...toolRes.citations, ...coursework.citations].slice(0, 6);
+      toolUsed = 'getUpcomingDeadlines() & getClassroomAssignments()';
+    } else if (q.includes('exam') || q.includes('algorithms') || q.includes('cse 204')) {
+      const toolRes = toolRegistry.getUpcomingExams();
+      retrievedData = toolRes.data;
+      citations = toolRes.citations;
+      toolUsed = 'getUpcomingExams()';
+    } else if (q.includes('attendance') || q.includes('condonation') || q.includes('shortage')) {
+      const toolRes = toolRegistry.getAttendanceAlerts();
+      retrievedData = toolRes.data;
+      citations = toolRes.citations;
+      toolUsed = 'getAttendanceAlerts()';
+    } else if (q.includes('bus') || q.includes('transport') || q.includes('shuttle')) {
+      const toolRes = toolRegistry.getTransportUpdates();
+      retrievedData = toolRes.data;
+      citations = toolRes.citations;
+      toolUsed = 'getTransportUpdates()';
+    } else if (q.includes('changed') || q.includes('what changed') || q.includes('postpone') || q.includes('closure')) {
+      const toolRes = toolRegistry.getCampusChanges();
+      retrievedData = toolRes.data;
+      citations = toolRes.citations;
+      toolUsed = 'getCampusChanges()';
+    } else if (q.includes('classroom') || q.includes('course')) {
+      const courses = toolRegistry.getClassroomCourses();
+      const work = toolRegistry.getClassroomAssignments();
+      retrievedData = { courses: courses.data, work: work.data };
+      citations = [...courses.citations, ...work.citations];
+      toolUsed = 'getClassroomCourses() & getClassroomAssignments()';
+    } else if (q.includes('conflict') || q.includes('calendar')) {
+      const conflictRes = await toolRegistry.checkCalendarConflict('2026-09-26T11:00:00.000Z', '2026-09-26T12:30:00.000Z');
+      const eventsRes = toolRegistry.getCalendarEvents();
+      retrievedData = { conflictCheck: conflictRes.data, upcomingCalendar: eventsRes.data };
+      citations = [...conflictRes.citations, ...eventsRes.citations.slice(0, 2)];
+      toolUsed = 'checkCalendarConflict() & getCalendarEvents()';
+    } else {
+      const searchRes = toolRegistry.searchEmails(query);
+      retrievedData = searchRes.data;
+      citations = searchRes.citations;
+      toolUsed = 'searchEmails(query)';
+    }
+
     if (!this.ai) {
       return this.fallback.answerCampusQuery(query, contextEmails, actions);
     }
 
     try {
-      const prompt = `You are the CampusPulse AI assistant for SRM University-AP students.
-You must answer strictly using the provided indexed university email data.
-Never invent university facts, faculty, or locations. If information is not in the context, explicitly state: "I couldn't find that information in your SRM AP communications."
+      const prompt = `You are CampusPulse AI for SRM University-AP students.
+You must answer strictly using the provided RETRIEVED APPLICATION DATA.
+Never invent university facts, faculty names, locations, deadlines, or exams.
+If no supporting data exists in the records below, say: "I couldn't find a matching university record."
 
 STUDENT QUERY: "${query}"
 
-INDEXED SRM AP EMAILS:
-${JSON.stringify(contextEmails.slice(0, 15).map(e => ({
-  id: e.id,
-  subject: e.subject,
-  category: e.category,
-  priority: e.priority,
-  summary: e.summary,
-  location: e.location,
-  deadline: e.actionDeadline,
-  action: e.actionText
-})), null, 2)}
-
-PENDING ACTIONS:
-${JSON.stringify(actions.slice(0, 8), null, 2)}
+DYNAMICALLY RETRIEVED APPLICATION RECORDS (Tool: ${toolUsed}):
+${JSON.stringify(retrievedData, null, 2)}
 
 Respond with strict JSON:
 {
-  "answer": "markdown-formatted helpful answer with bold highlights, bullets, and exact SRM AP locations/times",
+  "answer": "markdown-formatted helpful answer strictly grounded in the retrieved records with bold highlights, bullets, and exact SRM AP locations/times",
   "suggestedActions": ["Action label 1", "Action label 2"],
-  "referencedEmailIds": ["email-001"],
-  "toolUsed": "e.g. getUrgentMessages() or getUpcomingExams()"
+  "referencedEmailIds": ["email-id-if-applicable"]
 }`;
 
       const response = await this.ai.models.generateContent({
@@ -251,11 +299,18 @@ Respond with strict JSON:
         answer: parsed.answer,
         suggestedActions: parsed.suggestedActions || [],
         referencedEmailIds: parsed.referencedEmailIds || [],
-        toolUsed: parsed.toolUsed || 'searchUniversityMessages()'
+        toolUsed,
+        citations
       };
     } catch (err) {
       console.warn('Gemini assistant query failed, using deterministic fallback engine:', err);
-      return this.fallback.answerCampusQuery(query, contextEmails, actions);
+      const fallbackResult = await this.fallback.answerCampusQuery(query, contextEmails, actions);
+      return {
+        ...fallbackResult,
+        toolUsed: `${toolUsed} (Fallback Engine)`,
+        citations: fallbackResult.citations && fallbackResult.citations.length > 0 ? fallbackResult.citations : citations
+      };
     }
   }
 }
+

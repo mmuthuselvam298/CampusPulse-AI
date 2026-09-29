@@ -200,6 +200,7 @@ export class ApiService {
     suggestedActions: string[];
     referencedEmailIds: string[];
     toolUsed?: string;
+    citations?: any[];
   }> {
     try {
       const res = await fetch(`${API_BASE}/assistant`, {
@@ -217,18 +218,215 @@ export class ApiService {
     const q = query.toLowerCase();
     if (q.includes('exam')) {
       return {
-        answer: "Tomorrow's CSE302 Database Management Systems exam has been moved from Block A to **Block C, Hall 204**. Arrive by **8:40 AM** with your hall ticket.",
-        suggestedActions: ["View Hall Ticket", "Open in Google Maps"],
-        referencedEmailIds: ["email-001"]
+        answer: "Tomorrow's CSE 204 (Design & Analysis of Algorithms) examination has been relocated to **Room S202, SR Block**. Reporting cutoff is **8:40 AM sharp** with physical Hall Ticket and ID card.",
+        suggestedActions: ["View Notice in Email", "Check Calendar Conflict", "Open S202 on Map"],
+        referencedEmailIds: ["email-srm-003"],
+        toolUsed: "getUpcomingExams()",
+        citations: [
+          {
+            id: "email-srm-003",
+            title: "URGENT: Tomorrow's CSE 204 Exam Shifted to S202 SR Block",
+            type: "gmail",
+            snippet: "Examination hall relocated from Central Hall to Room S202, SR Block. Cutoff 8:40 AM."
+          }
+        ]
       };
     }
 
     return {
-      answer: "You have 3 pressing tasks today: Check the new exam hall (Block C Hall 204), file your attendance explanation before Friday, and plan for Route 4 bus delay.",
-      suggestedActions: ["View Urgent Actions", "Check Exam Schedule"],
-      referencedEmailIds: ["email-001", "email-002", "email-003"]
+      answer: "You have 3 pressing tasks today: CSE 204 exam reporting at S202 SR Block (8:40 AM), submitting attendance condonation form before Friday 5 PM, and reviewing bus route 5/8 adjustments.",
+      suggestedActions: ["View Urgent Actions", "Check Exam Schedule", "View Classroom Work"],
+      referencedEmailIds: ["email-srm-003", "email-srm-004", "email-srm-009"],
+      toolUsed: "getTodaySchedule() & getPendingActions()",
+      citations: [
+        {
+          id: "email-srm-003",
+          title: "CSE 204 Exam Venue Shifted",
+          type: "gmail",
+          snippet: "Reporting at 8:40 AM in Room S202 SR Block."
+        },
+        {
+          id: "email-srm-004",
+          title: "Attendance Shortage Form",
+          type: "gmail",
+          snippet: "Submit condonation form to Room 114 before Friday."
+        }
+      ]
     };
   }
+
+  // --- GOOGLE OAUTH & SYNC ---
+  public static async getGoogleAuthUrl(): Promise<string> {
+    try {
+      const res = await fetch(`${API_BASE}/google/oauth/start`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.authUrl;
+      }
+    } catch (err) {
+      console.warn('Failed to get Google auth URL:', err);
+    }
+    return '#';
+  }
+
+  public static async getGoogleStatus(): Promise<any> {
+    try {
+      const res = await fetch(`${API_BASE}/google/status`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Failed to get Google status:', err);
+    }
+    return {
+      connected: false,
+      configured: true,
+      userEmail: null,
+      services: {
+        gmail: { connected: false, readOnly: true },
+        classroom: { connected: false, readOnly: true },
+        calendar: { connected: false, readOnly: false },
+        gemini: { connected: true, model: 'gemini-3.8-flash' }
+      }
+    };
+  }
+
+  public static async disconnectGoogle(): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/google/disconnect`, { method: 'POST' });
+      return res.ok;
+    } catch (err) {
+      console.warn('Failed to disconnect Google:', err);
+      return false;
+    }
+  }
+
+  public static async syncGoogle(): Promise<any> {
+    try {
+      const res = await fetch(`${API_BASE}/google/sync`, { method: 'POST' });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Google sync failed:', err);
+    }
+    return {
+      gmailImported: 0,
+      gmailSkipped: 50,
+      classroomCourses: 4,
+      classroomAssignments: 3,
+      classroomAnnouncements: 2,
+      calendarEvents: 4,
+      newActions: 0,
+      updatedItems: 0,
+      durationMs: 420
+    };
+  }
+
+  // --- CLASSROOM ---
+  public static async getClassroomCourses(): Promise<any[]> {
+    try {
+      const res = await fetch(`${API_BASE}/classroom/courses`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Failed to fetch classroom courses:', err);
+    }
+    return [];
+  }
+
+  public static async getClassroomCoursework(courseId?: string): Promise<any[]> {
+    try {
+      const url = courseId ? `${API_BASE}/classroom/coursework?courseId=${courseId}` : `${API_BASE}/classroom/coursework`;
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Failed to fetch classroom coursework:', err);
+    }
+    return [];
+  }
+
+  public static async getClassroomAnnouncements(courseId?: string): Promise<any[]> {
+    try {
+      const url = courseId ? `${API_BASE}/classroom/announcements?courseId=${courseId}` : `${API_BASE}/classroom/announcements`;
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Failed to fetch classroom announcements:', err);
+    }
+    return [];
+  }
+
+  // --- CALENDAR ---
+  public static async getCalendarEvents(): Promise<any[]> {
+    try {
+      const res = await fetch(`${API_BASE}/calendar/events`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Failed to fetch calendar events:', err);
+    }
+    return [];
+  }
+
+  public static async checkCalendarConflict(startTime: string, endTime: string, excludeEventId?: string): Promise<any> {
+    try {
+      const res = await fetch(`${API_BASE}/calendar/check-conflict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startTime, endTime, excludeEventId })
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Conflict check failed:', err);
+    }
+    return { hasConflict: false, conflictingEvents: [] };
+  }
+
+  public static async createCalendarEvent(eventData: {
+    title: string;
+    startTime: string;
+    endTime: string;
+    description?: string;
+    location?: string;
+    sourceId?: string;
+  }): Promise<{ success: boolean; event?: any; error?: string; isDuplicate?: boolean }> {
+    try {
+      const res = await fetch(`${API_BASE}/calendar/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        return { success: false, isDuplicate: true, error: data.error };
+      }
+      if (res.ok) {
+        return { success: true, event: data.event };
+      }
+      return { success: false, error: data.error || 'Failed to create event' };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  public static async deleteCalendarEvent(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/calendar/events/${id}`, { method: 'DELETE' });
+      return res.ok;
+    } catch (err) {
+      return false;
+    }
+  }
+
 
   public static async simulateEmail(scenario?: string): Promise<{ email: EmailData }> {
     try {

@@ -1,11 +1,7 @@
-import { EmailAnalysisResult, CampusBriefingResult, EmailData, ActionItem } from '../../types';
+import { EmailAnalysisResult, CampusBriefingResult, EmailData, ActionItem, AssistantQueryResult, SourceCitation } from '../../types';
 
-export interface AssistantQueryResult {
-  answer: string;
-  suggestedActions: string[];
-  referencedEmailIds: string[];
-  toolUsed?: string;
-}
+export { AssistantQueryResult, SourceCitation };
+
 
 export interface AIProvider {
   name: 'gemini' | 'mock-fallback';

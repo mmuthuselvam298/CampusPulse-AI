@@ -8,11 +8,14 @@ export type NavTab =
   | 'actions'
   | 'deadlines'
   | 'calendar'
+  | 'classroom'
+  | 'connections'
   | 'map'
   | 'analytics'
   | 'relationships'
   | 'assistant'
   | 'settings';
+
 
 interface AppContextType {
   currentTab: NavTab;

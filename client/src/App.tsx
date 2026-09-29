@@ -13,6 +13,8 @@ import { InboxPage } from './pages/InboxPage';
 import { ActionsPage } from './pages/ActionsPage';
 import { RelationshipsPage } from './pages/RelationshipsPage';
 import { CalendarPage } from './pages/CalendarPage';
+import { ClassroomPage } from './pages/ClassroomPage';
+import { ConnectionsPage } from './pages/ConnectionsPage';
 import { CampusMapPage } from './pages/CampusMapPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AssistantPage } from './pages/AssistantPage';
@@ -35,9 +37,13 @@ const MainLayout: React.FC = () => {
         return <ActionsPage />;
       case 'relationships':
         return <RelationshipsPage />;
+      case 'classroom':
+        return <ClassroomPage />;
       case 'calendar':
       case 'deadlines':
         return <CalendarPage />;
+      case 'connections':
+        return <ConnectionsPage />;
       case 'map':
         return <CampusMapPage />;
       case 'analytics':
@@ -50,6 +56,7 @@ const MainLayout: React.FC = () => {
         return <DashboardPage />;
     }
   };
+
 
   return (
     <div className="flex h-screen bg-[#F8FAFF] overflow-hidden select-none font-sans">

@@ -2,59 +2,9 @@ import { google } from 'googleapis';
 import sanitizeHtml from 'sanitize-html';
 import { EmailData } from '../../types';
 import { UniversityFilter } from '../filter/UniversityFilter';
+import { GoogleOAuthService } from '../google/GoogleOAuthService';
 
 export class GmailService {
-  private static oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID || 'dummy_client_id',
-    process.env.GOOGLE_CLIENT_SECRET || 'dummy_client_secret',
-    process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/gmail/oauth/callback'
-  );
-
-  private static isConnected: boolean = false;
-  private static userEmail: string | null = null;
-  private static tokens: any = null;
-
-  public static getAuthUrl(): string {
-    const scopes = ['https://www.googleapis.com/auth/gmail.readonly'];
-    return GmailService.oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: scopes,
-      prompt: 'consent'
-    });
-  }
-
-  public static async handleCallback(code: string): Promise<boolean> {
-    try {
-      const { tokens } = await GmailService.oauth2Client.getToken(code);
-      GmailService.oauth2Client.setCredentials(tokens);
-      GmailService.tokens = tokens;
-      GmailService.isConnected = true;
-
-      const oauth2 = google.oauth2({ version: 'v2', auth: GmailService.oauth2Client });
-      const userInfo = await oauth2.userinfo.get();
-      GmailService.userEmail = userInfo.data.email || 'connected-user@university.edu';
-      return true;
-    } catch (err) {
-      console.error('Gmail OAuth token exchange error:', err);
-      return false;
-    }
-  }
-
-  public static getStatus(): { isConnected: boolean; userEmail: string | null; scope: string } {
-    return {
-      isConnected: GmailService.isConnected,
-      userEmail: GmailService.userEmail,
-      scope: 'https://www.googleapis.com/auth/gmail.readonly (Read-only, Zero Modify/Send)'
-    };
-  }
-
-  public static disconnect(): void {
-    GmailService.isConnected = false;
-    GmailService.userEmail = null;
-    GmailService.tokens = null;
-    GmailService.oauth2Client.revokeCredentials().catch(() => {});
-  }
-
   /**
    * Sanitizes raw email HTML content to guarantee 100% XSS-free safe rendering
    */
@@ -70,63 +20,142 @@ export class GmailService {
   }
 
   /**
-   * Fetches messages using Gmail API and applies university-domain filtering
+   * Helper to decode Base64 / Base64URL encoded Gmail message payload body parts
    */
-  public static async fetchUniversityEmails(): Promise<EmailData[]> {
-    if (!GmailService.isConnected) {
-      throw new Error('Gmail is not connected. Connect via OAuth or switch to Demo Mode.');
+  public static decodeBase64(data: string): string {
+    try {
+      // Replace URL-safe characters
+      const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+      return Buffer.from(base64, 'base64').toString('utf-8');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  /**
+   * Recursively extracts plain text and HTML from MIME payload
+   */
+  public static extractBodyFromPayload(payload: any): { text: string; html: string } {
+    let text = '';
+    let html = '';
+
+    if (!payload) return { text, html };
+
+    if (payload.body && payload.body.data) {
+      const decoded = GmailService.decodeBase64(payload.body.data);
+      if (payload.mimeType === 'text/html') {
+        html += decoded;
+      } else {
+        text += decoded;
+      }
     }
 
-    const gmail = google.gmail({ version: 'v1', auth: GmailService.oauth2Client });
+    if (payload.parts && Array.isArray(payload.parts)) {
+      for (const part of payload.parts) {
+        if (part.mimeType === 'text/plain' && part.body?.data) {
+          text += GmailService.decodeBase64(part.body.data);
+        } else if (part.mimeType === 'text/html' && part.body?.data) {
+          html += GmailService.decodeBase64(part.body.data);
+        } else if (part.parts) {
+          const nested = GmailService.extractBodyFromPayload(part);
+          text += nested.text;
+          html += nested.html;
+        }
+      }
+    }
+
+    return { text, html };
+  }
+
+  /**
+   * Fetches messages using Gmail API and applies university-domain filtering and deduplication
+   */
+  public static async fetchUniversityEmails(): Promise<EmailData[]> {
+    const oauthService = GoogleOAuthService.getInstance();
+    if (!oauthService.isAuthConnected()) {
+      throw new Error('Google OAuth is not connected. Please connect your Google account or use Demo Mode.');
+    }
+
+    const auth = oauthService.getClient();
+    const gmail = google.gmail({ version: 'v1', auth });
+
+    // Fetch message IDs with a query to prioritize relevant messages
     const response = await gmail.users.messages.list({
       userId: 'me',
-      maxResults: 50
+      maxResults: 50,
+      q: 'srmap OR classroom OR "srm university" OR exam OR assignment OR workshop'
     });
 
     const messages = response.data.messages || [];
     const results: EmailData[] = [];
+    const seenIds = new Set<string>();
 
     for (const msg of messages) {
-      if (!msg.id) continue;
-      const detail = await gmail.users.messages.get({ userId: 'me', id: msg.id });
-      const payload = detail.data.payload;
-      const headers = payload?.headers || [];
+      if (!msg.id || seenIds.has(msg.id)) continue;
+      seenIds.add(msg.id);
 
-      const getHeader = (name: string) => headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
-      const from = getHeader('from');
-      const subject = getHeader('subject') || '(No Subject)';
-      const date = getHeader('date') || new Date().toISOString();
-      const to = getHeader('to') || 'me@university.edu';
+      try {
+        const detail = await gmail.users.messages.get({
+          userId: 'me',
+          id: msg.id,
+          format: 'full'
+        });
 
-      // Apply university domain filter
-      if (!UniversityFilter.isUniversityEmail(from, to)) {
-        continue;
+        const payload = detail.data.payload;
+        const headers = payload?.headers || [];
+
+        const getHeader = (name: string) => headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
+        const from = getHeader('from');
+        const subject = getHeader('subject') || '(No Subject)';
+        const date = getHeader('date') || new Date().toISOString();
+        const to = getHeader('to') || 'student@srmap.edu.in';
+
+        // Apply institutional domain filter
+        if (!UniversityFilter.isUniversityEmail(from, to)) {
+          continue;
+        }
+
+        // Extract body
+        const { text, html } = GmailService.extractBodyFromPayload(payload);
+        const rawBody = text || html || detail.data.snippet || '';
+        const sanitized = GmailService.sanitizeEmailContent(rawBody);
+
+        // Detect if related to Classroom
+        const isClassroomNotification =
+          from.toLowerCase().includes('classroom') ||
+          subject.toLowerCase().includes('google classroom') ||
+          rawBody.toLowerCase().includes('classroom.google.com');
+
+        let senderName = from.split('<')[0].replace(/"/g, '').trim();
+        if (!senderName) senderName = from;
+
+        results.push({
+          id: `gmail-${msg.id}`,
+          threadId: detail.data.threadId || `thread-${msg.id}`,
+          sender: from,
+          senderName,
+          recipient: to,
+          subject,
+          body: sanitized,
+          timestamp: new Date(date).toISOString(),
+          dateFormatted: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          category: isClassroomNotification ? 'ASSIGNMENTS' : 'ACADEMICS',
+          priority: 'MEDIUM',
+          priorityScore: 60,
+          priorityReason: isClassroomNotification ? 'Classroom notification ingested from Gmail' : 'Verified university communication',
+          categoryReason: 'University institutional sender domain confirmed',
+          summary: detail.data.snippet || subject,
+          actionRequired: isClassroomNotification,
+          urgency: 'MEDIUM',
+          tags: isClassroomNotification ? ['gmail', 'live', 'classroom'] : ['gmail', 'live', 'university'],
+          isRead: false,
+          source: 'gmail',
+          systemOrigin: isClassroomNotification ? 'Google Classroom' : 'SRM Mail Gateway',
+          relatedClassroomCourseId: isClassroomNotification ? 'srm-course-213' : undefined
+        });
+      } catch (msgErr) {
+        console.warn(`Failed to fetch details for Gmail message ${msg.id}:`, msgErr);
       }
-
-      let body = detail.data.snippet || '';
-      const sanitized = GmailService.sanitizeEmailContent(body);
-
-      results.push({
-        id: `gmail-${msg.id}`,
-        sender: from,
-        senderName: from.split('<')[0].replace(/"/g, '').trim() || from,
-        recipient: to,
-        subject,
-        body: sanitized,
-        timestamp: new Date(date).toISOString(),
-        dateFormatted: new Date(date).toLocaleDateString(),
-        category: 'GENERAL',
-        priority: 'MEDIUM',
-        priorityScore: 50,
-        priorityReason: 'Ingested via Gmail Read-Only Sync.',
-        categoryReason: 'University sender domain confirmed.',
-        summary: detail.data.snippet || subject,
-        actionRequired: false,
-        urgency: 'MEDIUM',
-        tags: ['gmail', 'live'],
-        isRead: false,
-        source: 'gmail'
-      });
     }
 
     return results;

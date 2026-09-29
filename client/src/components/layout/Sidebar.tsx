@@ -12,7 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Sliders
+  Sliders,
+  BookOpen,
+  ShieldCheck
 } from 'lucide-react';
 import { useApp, NavTab } from '../../context/AppContext';
 
@@ -33,12 +35,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
     { id: 'inbox', label: 'Priority Inbox', icon: Inbox, badge: unreadCount, badgeColor: 'bg-indigo-100 text-indigo-700' },
     { id: 'actions', label: 'My Actions', icon: CheckSquare, badge: pendingActions, badgeColor: 'bg-red-100 text-red-700' },
     { id: 'relationships', label: 'What Changed?', icon: GitCompare, badge: 3, badgeColor: 'bg-amber-100 text-amber-700' },
-    { id: 'calendar', label: 'Deadlines & Events', icon: Calendar },
+    { id: 'classroom', label: 'Google Classroom', icon: BookOpen, badge: 3, badgeColor: 'bg-emerald-100 text-emerald-700' },
+    { id: 'calendar', label: 'Calendar & Conflict', icon: Calendar },
+    { id: 'connections', label: 'Connected Accounts', icon: ShieldCheck },
     { id: 'map', label: 'Campus Map', icon: MapPin },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'assistant', label: 'AI Assistant', icon: Bot },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
 
   return (
     <aside

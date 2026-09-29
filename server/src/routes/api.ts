@@ -232,35 +232,196 @@ apiRouter.get('/demo/status', (_req: Request, res: Response) => {
   });
 });
 
-// 11. GMAIL OAUTH & SYNC
-apiRouter.get('/gmail/auth-url', (_req: Request, res: Response) => {
-  const url = GmailService.getAuthUrl();
+// 11. ONE GOOGLE OAUTH & STATUS
+apiRouter.get('/google/oauth/start', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  const url = GoogleOAuthService.getInstance().getAuthUrl();
   res.json({ authUrl: url });
 });
 
+apiRouter.get('/google/oauth/callback', async (req: Request, res: Response) => {
+  try {
+    const { code } = req.query;
+    if (!code || typeof code !== 'string') {
+      res.status(400).send('Authorization code missing');
+      return;
+    }
+
+    const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+    const success = await GoogleOAuthService.getInstance().handleCallback(code);
+
+    if (success) {
+      db.setMode('gmail');
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+      res.redirect(`${clientUrl}/connections?google_connected=true`);
+    } else {
+      res.status(400).send('OAuth exchange failed. Please try again.');
+    }
+  } catch (err: any) {
+    res.status(500).send(`OAuth callback error: ${err.message}`);
+  }
+});
+
+apiRouter.get('/google/status', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  res.json(GoogleOAuthService.getInstance().getStatus());
+});
+
+apiRouter.post('/google/disconnect', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  GoogleOAuthService.getInstance().disconnect();
+  db.setMode('demo');
+  res.json({ message: 'Disconnected Google account. Reverted to Demo Mode.', isConnected: false });
+});
+
+// UNIFIED GOOGLE SYNC (Gmail + Classroom + Calendar)
+apiRouter.post('/google/sync', async (_req: Request, res: Response) => {
+  try {
+    const { SyncService } = require('../services/google/SyncService');
+    const result = await SyncService.getInstance().syncAll();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Google sync failed' });
+  }
+});
+
+// 12. CLASSROOM API
+apiRouter.get('/classroom/courses', (_req: Request, res: Response) => {
+  res.json(db.getClassroomCourses());
+});
+
+apiRouter.get('/classroom/coursework', (req: Request, res: Response) => {
+  const { courseId } = req.query;
+  let work = db.getClassroomCoursework();
+  if (courseId && typeof courseId === 'string') {
+    work = work.filter(w => w.courseId === courseId);
+  }
+  res.json(work);
+});
+
+apiRouter.get('/classroom/announcements', (req: Request, res: Response) => {
+  const { courseId } = req.query;
+  let ann = db.getClassroomAnnouncements();
+  if (courseId && typeof courseId === 'string') {
+    ann = ann.filter(a => a.courseId === courseId);
+  }
+  res.json(ann);
+});
+
+// 13. CALENDAR API & CONFLICT DETECTION
+apiRouter.get('/calendar/events', (_req: Request, res: Response) => {
+  res.json(db.getCalendarEvents());
+});
+
+apiRouter.post('/calendar/check-conflict', async (req: Request, res: Response) => {
+  try {
+    const { startTime, endTime, excludeEventId } = req.body;
+    if (!startTime || !endTime) {
+      res.status(400).json({ error: 'startTime and endTime are required' });
+      return;
+    }
+    const { CalendarService } = require('../services/google/CalendarService');
+    const result = await CalendarService.getInstance().checkConflict(startTime, endTime, excludeEventId);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Conflict check failed' });
+  }
+});
+
+apiRouter.post('/calendar/events', async (req: Request, res: Response) => {
+  try {
+    const { title, startTime, endTime, description, location, sourceId } = req.body;
+    if (!title || !startTime || !endTime) {
+      res.status(400).json({ error: 'title, startTime, and endTime are required' });
+      return;
+    }
+
+    const { CalendarService } = require('../services/google/CalendarService');
+    const calendarService = CalendarService.getInstance();
+
+    // Check duplicate
+    const dupCheck = await calendarService.checkDuplicate(title, startTime, sourceId);
+    if (dupCheck.isDuplicate) {
+      res.status(409).json({
+        error: 'Event already scheduled on Google Calendar',
+        isDuplicate: true,
+        existingEvent: dupCheck.existingEvent
+      });
+      return;
+    }
+
+    const created = await calendarService.createEvent({
+      title,
+      startTime,
+      endTime,
+      description,
+      location,
+      sourceId
+    });
+
+    // Mark email as added to calendar if source was an email
+    if (sourceId) {
+      const email = db.getEmailById(sourceId);
+      if (email) {
+        email.isCalendarAdded = true;
+        email.calendarEventId = created.event.id;
+      }
+    }
+
+    res.status(201).json(created);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create calendar event' });
+  }
+});
+
+apiRouter.delete('/calendar/events/:id', async (req: Request, res: Response) => {
+  try {
+    const { CalendarService } = require('../services/google/CalendarService');
+    await CalendarService.getInstance().deleteEvent(req.params.id);
+    res.json({ success: true, message: 'Event deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete event' });
+  }
+});
+
+// BACKWARD-COMPATIBLE GMAIL ROUTES
+apiRouter.get('/gmail/auth-url', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  res.json({ authUrl: GoogleOAuthService.getInstance().getAuthUrl() });
+});
+
 apiRouter.get('/gmail/status', (_req: Request, res: Response) => {
-  res.json(GmailService.getStatus());
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  const status = GoogleOAuthService.getInstance().getStatus();
+  res.json({
+    isConnected: status.connected,
+    userEmail: status.userEmail,
+    scope: 'https://www.googleapis.com/auth/gmail.readonly'
+  });
 });
 
 apiRouter.post('/gmail/disconnect', (_req: Request, res: Response) => {
-  GmailService.disconnect();
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  GoogleOAuthService.getInstance().disconnect();
   db.setMode('demo');
   res.json({ message: 'Gmail disconnected. Reverted to Demo Mode.', isConnected: false });
 });
 
 apiRouter.post('/gmail/sync', async (_req: Request, res: Response) => {
   try {
-    const fetched = await GmailService.fetchUniversityEmails();
+    const { SyncService } = require('../services/google/SyncService');
+    const result = await SyncService.getInstance().syncAll();
     res.json({
-      message: `Successfully synchronized ${fetched.length} university emails via Gmail read-only API`,
-      count: fetched.length
+      message: `Successfully synchronized ${result.gmailImported} university emails via Gmail read-only API`,
+      count: result.gmailImported,
+      syncResult: result
     });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'Gmail sync failed' });
   }
 });
 
-// AI HEALTH / STATUS (Requirement 50)
+// AI HEALTH / STATUS
 apiRouter.get('/ai/status', async (_req: Request, res: Response) => {
   try {
     const health = await ai.checkHealth();
@@ -270,14 +431,16 @@ apiRouter.get('/ai/status', async (_req: Request, res: Response) => {
   }
 });
 
-// 12. SETTINGS
+// 14. SETTINGS
 apiRouter.get('/settings', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
   res.json({
     student: db.getStudentProfile(),
     mode: db.getMode(),
     aiProvider: ai.getActiveProviderName(),
     model: ai.getModelName(),
     allowedDomains: UniversityFilter.getAllowedDomains(),
+    googleStatus: GoogleOAuthService.getInstance().getStatus(),
     categoriesEnabled: [
       'ACADEMICS', 'EXAMS', 'ATTENDANCE', 'ASSIGNMENTS', 'TIMETABLE',
       'COURSE REGISTRATION', 'EVENTS', 'TECH EVENTS', 'HACKATHONS', 'STUDENT CLUBS',
@@ -293,3 +456,4 @@ apiRouter.post('/settings', (req: Request, res: Response) => {
   if (mode === 'demo' || mode === 'gmail') db.setMode(mode);
   res.json({ message: 'Settings updated successfully' });
 });
+
