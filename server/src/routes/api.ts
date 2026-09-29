@@ -4,6 +4,17 @@ import { AIService } from '../services/ai/AIService';
 import { GmailService } from '../services/gmail/GmailService';
 import { RelationshipEngine } from '../services/relationships/RelationshipEngine';
 import { UniversityFilter } from '../services/filter/UniversityFilter';
+import { ConflictEngine } from '../services/intelligence/ConflictEngine';
+import { UnifiedEventEngine } from '../services/intelligence/UnifiedEventEngine';
+import { RiskEngine } from '../services/intelligence/RiskEngine';
+import { HealthEngine } from '../services/intelligence/HealthEngine';
+import { OpportunityEngine } from '../services/intelligence/OpportunityEngine';
+import { AttentionBudgetEngine } from '../services/intelligence/AttentionBudgetEngine';
+import { KnowledgeGraphEngine } from '../services/intelligence/KnowledgeGraphEngine';
+import { CalendarPlannerEngine } from '../services/intelligence/CalendarPlannerEngine';
+import { CatchUpEngine } from '../services/intelligence/CatchUpEngine';
+import { DigestEngine } from '../services/intelligence/DigestEngine';
+import { ChaosSimulatorEngine } from '../services/intelligence/ChaosSimulatorEngine';
 
 export const apiRouter = Router();
 const db = DatabaseService.getInstance();
@@ -456,4 +467,296 @@ apiRouter.post('/settings', (req: Request, res: Response) => {
   if (mode === 'demo' || mode === 'gmail') db.setMode(mode);
   res.json({ message: 'Settings updated successfully' });
 });
+
+// ============================================================
+// UNIQUE FEATURES API ROUTES
+// ============================================================
+
+// 1. Feature 1: Campus Knowledge Graph
+apiRouter.get('/unique-features/knowledge-graph', (_req: Request, res: Response) => {
+  try {
+    const graphData = KnowledgeGraphEngine.getInstance().getGraphData();
+    res.json(graphData);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to generate knowledge graph' });
+  }
+});
+
+// 2. Feature 2: What Changed Radar
+apiRouter.get('/unique-features/changes', (_req: Request, res: Response) => {
+  try {
+    const changes = RelationshipEngine.getWhatChanged(db.getEmails());
+    res.json(changes);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch change radar' });
+  }
+});
+
+// 3. Feature 3: Cross-System Information Conflict Detector
+apiRouter.get('/unique-features/conflicts', (_req: Request, res: Response) => {
+  try {
+    const conflicts = ConflictEngine.getInstance().detectConflicts();
+    res.json(conflicts);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to detect conflicts' });
+  }
+});
+
+// 4. Feature 4: Information Truth / Resolution View
+apiRouter.get('/unique-features/truth-resolution/:id', (req: Request, res: Response) => {
+  try {
+    const truth = UnifiedEventEngine.getInstance().getTruthResolution(req.params.id);
+    if (!truth) {
+      res.status(404).json({ error: 'Event truth resolution not found' });
+      return;
+    }
+    res.json(truth);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch truth resolution' });
+  }
+});
+
+// 5. Feature 5: "Why This Matters to Me?"
+apiRouter.get('/unique-features/why-it-matters/:id', (req: Request, res: Response) => {
+  try {
+    const reasons = UnifiedEventEngine.getInstance().getWhyThisMatters(req.params.id);
+    res.json({ id: req.params.id, whyItMatters: reasons });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch importance reasoning' });
+  }
+});
+
+// 6. Feature 6: Deadline Risk Detector
+apiRouter.get('/unique-features/deadline-risk', (_req: Request, res: Response) => {
+  try {
+    const risks = RiskEngine.getInstance().calculateDeadlineRisks();
+    res.json(risks);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to calculate deadline risks' });
+  }
+});
+
+// 7. Feature 7: AI Calendar Planner
+apiRouter.get('/unique-features/calendar-planner', (req: Request, res: Response) => {
+  try {
+    const date = typeof req.query.date === 'string' ? req.query.date : '2026-09-30';
+    const plan = CalendarPlannerEngine.getInstance().generatePlan(date);
+    res.json(plan);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to generate calendar plan' });
+  }
+});
+
+// 8 & 20. Feature 8 & 20: Information Hub & Unified Events
+apiRouter.get('/unique-features/unified-events', (_req: Request, res: Response) => {
+  try {
+    const events = UnifiedEventEngine.getInstance().getUnifiedEvents();
+    res.json(events);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch unified events' });
+  }
+});
+
+apiRouter.get('/unique-features/unified-events/:id', (req: Request, res: Response) => {
+  try {
+    const event = UnifiedEventEngine.getInstance().getUnifiedEventById(req.params.id);
+    if (!event) {
+      res.status(404).json({ error: 'Unified event not found' });
+      return;
+    }
+    res.json(event);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch unified event detail' });
+  }
+});
+
+// 9. Feature 9: "What Did I Miss?" / Catch-Up
+apiRouter.get('/unique-features/catch-up', (req: Request, res: Response) => {
+  try {
+    const tf = (req.query.timeframe as any) || 'since_yesterday';
+    const report = CatchUpEngine.getInstance().getCatchUpSummary(tf);
+    res.json(report);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to generate catch-up report' });
+  }
+});
+
+// 10. Feature 10: Campus Communication Health
+apiRouter.get('/unique-features/communication-health', (_req: Request, res: Response) => {
+  try {
+    const metrics = HealthEngine.getInstance().calculateHealthMetrics();
+    res.json(metrics);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to compute communication health' });
+  }
+});
+
+// 11. Feature 11: Opportunity Matcher
+apiRouter.get('/unique-features/opportunities', (_req: Request, res: Response) => {
+  try {
+    const opportunities = OpportunityEngine.getInstance().getOpportunities();
+    res.json(opportunities);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch opportunities' });
+  }
+});
+
+// 12. Feature 12: Attention Budget
+apiRouter.get('/unique-features/attention-budget', (_req: Request, res: Response) => {
+  try {
+    const budget = AttentionBudgetEngine.getInstance().getAttentionBudget();
+    res.json(budget);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch attention budget' });
+  }
+});
+
+// 13. Feature 13: Explain AI Decision
+apiRouter.get('/unique-features/explain/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const email = db.getEmailById(id);
+    const action = db.getActions().find(a => a.id === id || a.emailId === id);
+    const unified = UnifiedEventEngine.getInstance().getUnifiedEventById(id);
+
+    const reasons: string[] = [];
+    const sources: any[] = [];
+
+    if (email) {
+      if (email.priorityReason) reasons.push(email.priorityReason);
+      if (email.categoryReason) reasons.push(email.categoryReason);
+      if (email.actionRequired) reasons.push(`Requires explicit action: "${email.actionText}"`);
+      if (email.actionDeadline) reasons.push(`Hard deadline identified: ${email.actionDeadline}`);
+      sources.push({
+        source: 'Gmail',
+        title: email.subject,
+        snippet: email.summary || email.body.slice(0, 100),
+        timestamp: email.timestamp
+      });
+    }
+
+    if (action) {
+      reasons.push(`Action priority is ${action.priority} due to target deadline: ${action.deadline || 'Immediate'}`);
+    }
+
+    if (unified) {
+      reasons.push(...unified.whyItMatters);
+      unified.sources.forEach(s => {
+        sources.push({
+          source: s.type.toUpperCase(),
+          title: s.title,
+          snippet: s.snippet || '',
+          timestamp: s.timestamp
+        });
+      });
+    }
+
+    if (reasons.length === 0) {
+      reasons.push('Classified according to student department priority and urgency heuristics.');
+    }
+
+    res.json({
+      itemId: id,
+      itemTitle: email?.subject || action?.title || unified?.title || 'Decision Explanation',
+      decisionType: 'PRIORITY',
+      outcome: email?.priority || action?.priority || 'CRITICAL',
+      reasons,
+      evidenceSources: sources
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to generate explanation' });
+  }
+});
+
+// 14. Feature 14: Campus Chaos Simulator
+apiRouter.post('/unique-features/chaos-simulate', (req: Request, res: Response) => {
+  try {
+    const { simulationType } = req.body;
+    if (!simulationType) {
+      res.status(400).json({ error: 'simulationType is required' });
+      return;
+    }
+    const result = ChaosSimulatorEngine.getInstance().simulateChaos(simulationType);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Simulation failed' });
+  }
+});
+
+// 16. Feature 16: "What Happens If I Ignore This?"
+apiRouter.get('/unique-features/consequence/:actionId', (req: Request, res: Response) => {
+  try {
+    const analysis = UnifiedEventEngine.getInstance().getConsequence(req.params.actionId);
+    res.json(analysis);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to evaluate consequences' });
+  }
+});
+
+// 21. Feature 21: Campus Intelligence Global Search
+apiRouter.get('/unique-features/search', (req: Request, res: Response) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.toLowerCase() : '';
+    if (!q) {
+      res.json({ emails: [], coursework: [], calendarEvents: [], actions: [], unifiedEvents: [], totalMatches: 0 });
+      return;
+    }
+
+    const emails = db.getEmails().filter(e =>
+      e.subject.toLowerCase().includes(q) ||
+      e.body.toLowerCase().includes(q) ||
+      e.senderName.toLowerCase().includes(q) ||
+      (e.location && e.location.toLowerCase().includes(q)) ||
+      (e.actionText && e.actionText.toLowerCase().includes(q))
+    );
+
+    const coursework = db.getClassroomCoursework().filter(w =>
+      w.title.toLowerCase().includes(q) ||
+      w.courseName.toLowerCase().includes(q)
+    );
+
+    const calendarEvents = db.getCalendarEvents().filter(c =>
+      c.title.toLowerCase().includes(q) ||
+      (c.location && c.location.toLowerCase().includes(q)) ||
+      (c.description && c.description.toLowerCase().includes(q))
+    );
+
+    const actions = db.getActions().filter(a =>
+      a.title.toLowerCase().includes(q) ||
+      a.sourceEmailSubject.toLowerCase().includes(q) ||
+      (a.location && a.location.toLowerCase().includes(q))
+    );
+
+    const unifiedEvents = UnifiedEventEngine.getInstance().getUnifiedEvents().filter(u =>
+      u.title.toLowerCase().includes(q) ||
+      (u.location && u.location.toLowerCase().includes(q)) ||
+      u.category.toLowerCase().includes(q)
+    );
+
+    const totalMatches = emails.length + coursework.length + calendarEvents.length + actions.length + unifiedEvents.length;
+
+    res.json({
+      query: q,
+      totalMatches,
+      emails,
+      coursework,
+      calendarEvents,
+      actions,
+      unifiedEvents
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Search failed' });
+  }
+});
+
+// 24. Feature 24: Smart Notification Digest
+apiRouter.get('/unique-features/digests', (_req: Request, res: Response) => {
+  try {
+    const digests = DigestEngine.getInstance().getNotificationDigests();
+    res.json(digests);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch digests' });
+  }
+});
+
 

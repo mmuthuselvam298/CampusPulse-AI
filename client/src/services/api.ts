@@ -1,4 +1,24 @@
-import { EmailData, ActionItem, DashboardData, CampusBriefingResult, ScheduleChangeItem } from '../types';
+import { 
+  EmailData, 
+  ActionItem, 
+  DashboardData, 
+  CampusBriefingResult, 
+  ScheduleChangeItem,
+  KnowledgeGraphData,
+  InformationConflict,
+  TruthResolutionItem,
+  DeadlineRiskItem,
+  AICalendarPlan,
+  UnifiedEvent,
+  CatchUpSummary,
+  CommunicationHealthMetrics,
+  OpportunityItem,
+  AttentionBudgetData,
+  AIDecisionExplanation,
+  ChaosSimulationResult,
+  ConsequenceAnalysis,
+  NotificationDigestGroup
+} from '../types';
 import localDemoEmails from '../data/demo-emails.json';
 
 const API_BASE = '/api';
@@ -663,4 +683,130 @@ export class ApiService {
       ]
     };
   }
+
+  // ==========================================
+  // UNIQUE FEATURES CLIENT METHODS
+  // ==========================================
+
+  public static async getKnowledgeGraph(): Promise<KnowledgeGraphData> {
+    const res = await fetch(`${API_BASE}/unique-features/knowledge-graph`);
+    if (!res.ok) throw new Error('Failed to fetch knowledge graph');
+    return await res.json();
+  }
+
+  public static async getWhatChangedRadar(): Promise<ScheduleChangeItem[]> {
+    const res = await fetch(`${API_BASE}/unique-features/changes`);
+    if (!res.ok) throw new Error('Failed to fetch change radar');
+    return await res.json();
+  }
+
+  public static async getConflicts(): Promise<InformationConflict[]> {
+    const res = await fetch(`${API_BASE}/unique-features/conflicts`);
+    if (!res.ok) throw new Error('Failed to fetch conflicts');
+    return await res.json();
+  }
+
+  public static async getTruthResolution(id: string): Promise<TruthResolutionItem> {
+    const res = await fetch(`${API_BASE}/unique-features/truth-resolution/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch truth resolution');
+    return await res.json();
+  }
+
+  public static async getWhyThisMatters(id: string): Promise<{ id: string; whyItMatters: string[] }> {
+    const res = await fetch(`${API_BASE}/unique-features/why-it-matters/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch importance reasoning');
+    return await res.json();
+  }
+
+  public static async getDeadlineRisks(): Promise<DeadlineRiskItem[]> {
+    const res = await fetch(`${API_BASE}/unique-features/deadline-risk`);
+    if (!res.ok) throw new Error('Failed to fetch deadline risks');
+    return await res.json();
+  }
+
+  public static async getCalendarPlan(date?: string): Promise<AICalendarPlan> {
+    const url = date ? `${API_BASE}/unique-features/calendar-planner?date=${date}` : `${API_BASE}/unique-features/calendar-planner`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch calendar plan');
+    return await res.json();
+  }
+
+  public static async getUnifiedEvents(): Promise<UnifiedEvent[]> {
+    const res = await fetch(`${API_BASE}/unique-features/unified-events`);
+    if (!res.ok) throw new Error('Failed to fetch unified events');
+    return await res.json();
+  }
+
+  public static async getUnifiedEventById(id: string): Promise<UnifiedEvent> {
+    const res = await fetch(`${API_BASE}/unique-features/unified-events/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch unified event');
+    return await res.json();
+  }
+
+  public static async getCatchUpSummary(timeframe: string = 'since_yesterday'): Promise<CatchUpSummary> {
+    const res = await fetch(`${API_BASE}/unique-features/catch-up?timeframe=${timeframe}`);
+    if (!res.ok) throw new Error('Failed to fetch catch-up summary');
+    return await res.json();
+  }
+
+  public static async getCommunicationHealth(): Promise<CommunicationHealthMetrics> {
+    const res = await fetch(`${API_BASE}/unique-features/communication-health`);
+    if (!res.ok) throw new Error('Failed to fetch communication health');
+    return await res.json();
+  }
+
+  public static async getOpportunities(): Promise<OpportunityItem[]> {
+    const res = await fetch(`${API_BASE}/unique-features/opportunities`);
+    if (!res.ok) throw new Error('Failed to fetch opportunities');
+    return await res.json();
+  }
+
+  public static async getAttentionBudget(): Promise<AttentionBudgetData> {
+    const res = await fetch(`${API_BASE}/unique-features/attention-budget`);
+    if (!res.ok) throw new Error('Failed to fetch attention budget');
+    return await res.json();
+  }
+
+  public static async getAIDecisionExplanation(id: string): Promise<AIDecisionExplanation> {
+    const res = await fetch(`${API_BASE}/unique-features/explain/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch decision explanation');
+    return await res.json();
+  }
+
+  public static async simulateChaos(simulationType: string): Promise<ChaosSimulationResult> {
+    const res = await fetch(`${API_BASE}/unique-features/chaos-simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ simulationType })
+    });
+    if (!res.ok) throw new Error('Chaos simulation request failed');
+    return await res.json();
+  }
+
+  public static async getConsequence(actionId: string): Promise<ConsequenceAnalysis> {
+    const res = await fetch(`${API_BASE}/unique-features/consequence/${actionId}`);
+    if (!res.ok) throw new Error('Failed to fetch consequence analysis');
+    return await res.json();
+  }
+
+  public static async searchCampus(query: string): Promise<{
+    query: string;
+    totalMatches: number;
+    emails: EmailData[];
+    coursework: any[];
+    calendarEvents: any[];
+    actions: ActionItem[];
+    unifiedEvents: UnifiedEvent[];
+  }> {
+    const res = await fetch(`${API_BASE}/unique-features/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error('Search query failed');
+    return await res.json();
+  }
+
+  public static async getNotificationDigests(): Promise<NotificationDigestGroup[]> {
+    const res = await fetch(`${API_BASE}/unique-features/digests`);
+    if (!res.ok) throw new Error('Failed to fetch notification digests');
+    return await res.json();
+  }
 }
+

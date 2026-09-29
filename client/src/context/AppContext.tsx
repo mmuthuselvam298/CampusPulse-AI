@@ -14,7 +14,30 @@ export type NavTab =
   | 'analytics'
   | 'relationships'
   | 'assistant'
-  | 'settings';
+  | 'settings'
+  // Unique Features
+  | 'unique-features'
+  | 'knowledge-graph'
+  | 'changes-radar'
+  | 'conflicts'
+  | 'truth-resolution'
+  | 'why-it-matters'
+  | 'deadline-risk'
+  | 'calendar-planner'
+  | 'information-hub'
+  | 'catch-up'
+  | 'communication-health'
+  | 'opportunities'
+  | 'attention-budget'
+  | 'explain-decision'
+  | 'chaos-simulator'
+  | 'event-navigator'
+  | 'privacy'
+  | 'timeline'
+  | 'compare-sources'
+  | 'digest'
+  | 'command-center';
+
 
 
 interface AppContextType {

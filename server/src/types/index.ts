@@ -375,3 +375,386 @@ export interface ToastMessage {
   time?: string;
 }
 
+// ==========================================
+// UNIQUE FEATURES EXPANSION TYPES
+// ==========================================
+
+export type UniqueFeatureCategory = 
+  | 'UNDERSTAND'
+  | 'DETECT'
+  | 'ACT'
+  | 'PERSONALIZE'
+  | 'DEMO_TRUST'
+  | 'AI';
+
+export interface UniqueFeatureCardDef {
+  id: string;
+  route: string;
+  title: string;
+  subtitle: string;
+  whyItMatters: string;
+  category: UniqueFeatureCategory;
+  iconName: string;
+  badge?: 'LIVE' | 'DEMO' | 'AI' | 'GOOGLE' | 'FLAGSHIP';
+  badgeColor?: string;
+}
+
+// 1. Knowledge Graph
+export type GraphNodeType = 'COURSE' | 'GMAIL' | 'CLASSROOM' | 'CALENDAR' | 'ACTION' | 'DEADLINE' | 'ANNOUNCEMENT' | 'TOPIC';
+
+export interface KnowledgeGraphNode {
+  id: string;
+  label: string;
+  type: GraphNodeType;
+  source: 'gmail' | 'classroom' | 'calendar' | 'system' | 'action';
+  sourceId?: string;
+  category?: Category;
+  timestamp?: string;
+  priority?: Priority;
+  details?: Record<string, any>;
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+}
+
+export interface KnowledgeGraphEdge {
+  id: string;
+  source: string; // source node id
+  target: string; // target node id
+  label: string;
+  type: 'CONTAINS' | 'SCHEDULED_IN' | 'ANNOUNCED_BY' | 'TRIGGERS_ACTION' | 'HAS_DEADLINE' | 'CHANGED_BY' | 'CONFLICTS_WITH' | 'SYNCS_TO';
+}
+
+export interface KnowledgeGraphData {
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
+  summary: {
+    totalNodes: number;
+    totalEdges: number;
+    courseCount: number;
+    emailCount: number;
+    classroomCount: number;
+    calendarCount: number;
+    actionCount: number;
+  };
+}
+
+// 3. Information Conflict
+export interface ConflictSourceEvidence {
+  sourceName: 'Gmail' | 'Google Calendar' | 'Google Classroom';
+  value: string;
+  timestamp?: string;
+  recordId: string;
+  recordTitle: string;
+  excerpt: string;
+  url?: string;
+}
+
+export interface InformationConflict {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  field: 'TIME' | 'LOCATION' | 'DATE' | 'STATUS' | 'DEADLINE';
+  sourceA: ConflictSourceEvidence;
+  sourceB: ConflictSourceEvidence;
+  severity: 'HIGH' | 'MEDIUM';
+  detectedAt: string;
+  currentKnownState: string;
+  hasAuthoritativeResolution: boolean;
+  authoritativeSource?: string;
+  resolutionExplanation: string;
+  suggestedAction: string;
+  calendarEventId?: string;
+  emailId?: string;
+}
+
+// 4. Information Truth Resolution
+export interface TruthFieldResolution {
+  field: 'Title' | 'Date' | 'Time' | 'Location' | 'Status';
+  value: string;
+  status: 'Confirmed' | 'Supported' | 'Conflicting' | 'Unknown';
+  authoritativeReason: string;
+  sources: {
+    source: 'Gmail' | 'Google Classroom' | 'Google Calendar';
+    value: string;
+    evidence: string;
+    timestamp?: string;
+  }[];
+}
+
+export interface TruthResolutionItem {
+  id: string;
+  eventId: string;
+  title: string;
+  overallStatus: 'Confirmed' | 'Supported' | 'Conflicting' | 'Unknown';
+  fields: TruthFieldResolution[];
+  sourcesCovered: {
+    gmail: boolean;
+    classroom: boolean;
+    calendar: boolean;
+  };
+  lastVerifiedAt: string;
+}
+
+// 6. Deadline Risk
+export interface DeadlineRiskItem {
+  id: string;
+  title: string;
+  courseName?: string;
+  sourceType: 'classroom' | 'gmail';
+  sourceId: string;
+  dueDate: string; // ISO or formatted
+  dueTimeFormatted?: string;
+  hoursRemaining: number;
+  riskLevel: 'LOW RISK' | 'MEDIUM RISK' | 'HIGH RISK';
+  submissionStatus: 'SUBMITTED' | 'ASSIGNED' | 'NEW' | 'TURNED_IN' | 'UNAVAILABLE' | string;
+  explicitActionRequired: boolean;
+  hasRepeatedReminders: boolean;
+  hasChangedDeadline: boolean;
+  hasConflict: boolean;
+  riskScore: number; // 0 - 100
+  riskReasons: string[];
+  suggestedAction: string;
+}
+
+// 7. AI Calendar Planner
+export interface PlannedScheduleSlot {
+  id: string;
+  timeSlot: string; // e.g. "09:00 - 10:00"
+  startTime: string; // ISO
+  endTime: string; // ISO
+  title: string;
+  activityType: 'CLASS' | 'EVENT' | 'WORKSHOP' | 'STUDY' | 'SUBMISSION' | 'BREAK' | 'EXAM';
+  priority: Priority;
+  location?: string;
+  sourceType?: 'email' | 'classroom' | 'calendar' | 'ai_suggested';
+  sourceId?: string;
+  description: string;
+  isAlreadyInCalendar: boolean;
+  calendarEventId?: string;
+  conflictWarning?: string;
+}
+
+export interface AICalendarPlan {
+  targetDate: string;
+  dayHeadline: string;
+  productivityScore: number;
+  schedule: PlannedScheduleSlot[];
+  summary: {
+    totalCommitments: number;
+    studyTimeMinutes: number;
+    breakTimeMinutes: number;
+    unaddedCount: number;
+  };
+  aiRecommendations: string[];
+}
+
+// 8 & 20. Unified Event Card
+export interface UnifiedEventSource {
+  type: 'gmail' | 'classroom' | 'calendar';
+  id: string;
+  title: string;
+  timestamp?: string;
+  snippet?: string;
+  url?: string;
+  detail?: string;
+}
+
+export interface UnifiedEvent {
+  id: string;
+  title: string;
+  topicKey: string;
+  category: Category;
+  priority: Priority;
+  dateFormatted: string;
+  timeFormatted: string;
+  location?: string;
+  status: 'Confirmed' | 'Supported' | 'Conflicting' | 'Changed' | 'Postponed' | 'Cancelled' | 'Unknown';
+  sources: UnifiedEventSource[];
+  sourceCount: number;
+  relatedEmailCount: number;
+  hasClassroom: boolean;
+  hasCalendar: boolean;
+  isCalendarAdded: boolean;
+  calendarEventId?: string;
+  actions: ActionItem[];
+  changes: ScheduleChangeItem[];
+  conflicts: InformationConflict[];
+  whyItMatters: string[];
+  timeline: {
+    date: string;
+    timestamp: string;
+    title: string;
+    source: string;
+    description: string;
+    badge?: string;
+  }[];
+}
+
+// 9. "What Did I Miss?" / Catch-Up
+export interface CatchUpSummary {
+  timeframe: 'today' | 'since_yesterday' | 'last_3_days' | 'last_week';
+  timeframeLabel: string;
+  analyzedSince: string;
+  counts: {
+    importantChanges: number;
+    newActions: number;
+    informationalUpdates: number;
+    totalNotices: number;
+  };
+  highlights: {
+    category: Category;
+    title: string;
+    summary: string;
+    type: 'CHANGE' | 'ACTION' | 'INFO';
+    sourceType: string;
+    id: string;
+  }[];
+  topActions: ActionItem[];
+}
+
+// 10. Communication Health
+export interface CommunicationHealthMetrics {
+  totalCommunications: number;
+  duplicateOrRelatedCount: number;
+  duplicatePercentage: number;
+  withDeadlinesCount: number;
+  withDeadlinesPercentage: number;
+  withLocationsCount: number;
+  withLocationsPercentage: number;
+  withExplicitActionsCount: number;
+  withExplicitActionsPercentage: number;
+  conflictingInfoCount: number;
+  changedEventsCount: number;
+  missingLocationCount: number;
+  missingTimeCount: number;
+  overallHealthScore: number; // 0 - 100
+  grade: 'A' | 'B' | 'C' | 'D';
+  datasetContext: string;
+  topInsights: string[];
+}
+
+// 11. Opportunity Matcher
+export interface OpportunityItem {
+  id: string;
+  title: string;
+  type: 'HACKATHON' | 'WORKSHOP' | 'EXPERT_TALK' | 'COMPETITION' | 'INTERNSHIP' | 'CLUB_RECRUITMENT' | 'FDP';
+  organizer: string;
+  date?: string;
+  deadline?: string;
+  location?: string;
+  relevanceScore: number; // 0 - 100
+  whyRelevant: string[];
+  actionText: string;
+  sourceId: string;
+  sourceSubject: string;
+  category: Category;
+  tags: string[];
+}
+
+// 12. Attention Budget
+export interface AttentionBudgetData {
+  date: string;
+  totalItems: number;
+  immediate: {
+    count: number;
+    items: {
+      id: string;
+      title: string;
+      reason: string;
+      deadline?: string;
+      priority: Priority;
+      category: Category;
+      source: string;
+    }[];
+  };
+  thisWeek: {
+    count: number;
+    items: {
+      id: string;
+      title: string;
+      reason: string;
+      deadline?: string;
+      priority: Priority;
+      category: Category;
+      source: string;
+    }[];
+  };
+  informational: {
+    count: number;
+    items: {
+      id: string;
+      title: string;
+      category: Category;
+      source: string;
+    }[];
+  };
+}
+
+// 13. Decision Explanation
+export interface AIDecisionExplanation {
+  itemId: string;
+  itemTitle: string;
+  decisionType: 'PRIORITY' | 'RECOMMENDATION' | 'RISK' | 'RELATIONSHIP' | 'CHANGE';
+  outcome: string;
+  reasons: string[];
+  evidenceSources: {
+    source: string;
+    title: string;
+    snippet: string;
+    timestamp?: string;
+  }[];
+}
+
+// 14. Chaos Simulator
+export type ChaosSimulationType = 
+  | 'ROOM_CHANGE'
+  | 'TIME_CHANGE'
+  | 'DEADLINE_CHANGE'
+  | 'EVENT_POSTPONEMENT'
+  | 'EVENT_CANCELLATION'
+  | 'UNIVERSITY_CLOSURE'
+  | 'TRANSPORT_DISRUPTION'
+  | 'CONFLICTING_INFO';
+
+export interface ChaosSimulationResult {
+  simulationType: ChaosSimulationType;
+  success: boolean;
+  headline: string;
+  simulatedEmail: EmailData;
+  affectedEventTitle: string;
+  changeDetected: ScheduleChangeItem;
+  conflictDetected?: InformationConflict;
+  actionCreated?: ActionItem;
+  calendarWarning?: string;
+  summaryOfUpdates: string[];
+}
+
+// 16. Consequence Analysis
+export interface ConsequenceAnalysis {
+  actionId: string;
+  actionTitle: string;
+  deadline?: string;
+  consequences: string[];
+  supportedByEvidence: boolean;
+  evidenceSource: string;
+  evidenceSnippet: string;
+}
+
+// 24. Smart Notification Digest
+export interface NotificationDigestGroup {
+  topicKey: string;
+  topicTitle: string;
+  category: Category;
+  totalNotificationsCount: number;
+  condensedHeadline: string;
+  lastUpdated: string;
+  summary: string;
+  primaryAction?: ActionItem;
+  hasChanges: boolean;
+  hasConflict: boolean;
+  emails: EmailData[];
+}
+
+

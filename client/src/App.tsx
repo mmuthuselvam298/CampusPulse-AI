@@ -20,6 +20,29 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AssistantPage } from './pages/AssistantPage';
 import { SettingsPage } from './pages/SettingsPage';
 
+// Unique Features Pages
+import { UniqueLandingPage } from './pages/unique/UniqueLandingPage';
+import { KnowledgeGraphPage } from './pages/unique/KnowledgeGraphPage';
+import { ChangesRadarPage } from './pages/unique/ChangesRadarPage';
+import { ConflictDetectorPage } from './pages/unique/ConflictDetectorPage';
+import { TruthResolutionPage } from './pages/unique/TruthResolutionPage';
+import { WhyItMattersPage } from './pages/unique/WhyItMattersPage';
+import { DeadlineRiskPage } from './pages/unique/DeadlineRiskPage';
+import { CalendarPlannerPage } from './pages/unique/CalendarPlannerPage';
+import { InformationHubPage } from './pages/unique/InformationHubPage';
+import { CatchUpPage } from './pages/unique/CatchUpPage';
+import { CommunicationHealthPage } from './pages/unique/CommunicationHealthPage';
+import { OpportunityMatcherPage } from './pages/unique/OpportunityMatcherPage';
+import { AttentionBudgetPage } from './pages/unique/AttentionBudgetPage';
+import { ExplainDecisionPage } from './pages/unique/ExplainDecisionPage';
+import { ChaosSimulatorPage } from './pages/unique/ChaosSimulatorPage';
+import { EventNavigatorPage } from './pages/unique/EventNavigatorPage';
+import { PrivacyCenterPage } from './pages/unique/PrivacyCenterPage';
+import { TimelinePage } from './pages/unique/TimelinePage';
+import { SourceComparisonPage } from './pages/unique/SourceComparisonPage';
+import { DigestPage } from './pages/unique/DigestPage';
+import { CommandCenterPage } from './pages/unique/CommandCenterPage';
+
 // Mobile bottom nav icons
 import { LayoutDashboard, Inbox, CheckSquare, Calendar, Sparkles } from 'lucide-react';
 
@@ -52,6 +75,51 @@ const MainLayout: React.FC = () => {
         return <AssistantPage />;
       case 'settings':
         return <SettingsPage />;
+
+      // Unique Features Routes
+      case 'unique-features':
+        return <UniqueLandingPage />;
+      case 'command-center':
+        return <CommandCenterPage />;
+      case 'knowledge-graph':
+        return <KnowledgeGraphPage />;
+      case 'changes-radar':
+        return <ChangesRadarPage />;
+      case 'conflicts':
+        return <ConflictDetectorPage />;
+      case 'truth-resolution':
+        return <TruthResolutionPage />;
+      case 'why-it-matters':
+        return <WhyItMattersPage />;
+      case 'deadline-risk':
+        return <DeadlineRiskPage />;
+      case 'calendar-planner':
+        return <CalendarPlannerPage />;
+      case 'information-hub':
+        return <InformationHubPage />;
+      case 'catch-up':
+        return <CatchUpPage />;
+      case 'communication-health':
+        return <CommunicationHealthPage />;
+      case 'opportunities':
+        return <OpportunityMatcherPage />;
+      case 'attention-budget':
+        return <AttentionBudgetPage />;
+      case 'explain-decision':
+        return <ExplainDecisionPage />;
+      case 'chaos-simulator':
+        return <ChaosSimulatorPage />;
+      case 'event-navigator':
+        return <EventNavigatorPage />;
+      case 'privacy':
+        return <PrivacyCenterPage />;
+      case 'timeline':
+        return <TimelinePage />;
+      case 'compare-sources':
+        return <SourceComparisonPage />;
+      case 'digest':
+        return <DigestPage />;
+
       default:
         return <DashboardPage />;
     }

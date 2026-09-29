@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "tsx --test test/priorityEngine.test.ts"
+    "test": "tsx --test test/priorityEngine.test.ts test/uniqueFeatures.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

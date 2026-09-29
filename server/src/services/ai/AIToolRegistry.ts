@@ -1,6 +1,13 @@
 import { DatabaseService } from '../../db/DatabaseService';
 import { CalendarService } from '../google/CalendarService';
 import { RelationshipEngine } from '../relationships/RelationshipEngine';
+import { ConflictEngine } from '../intelligence/ConflictEngine';
+import { UnifiedEventEngine } from '../intelligence/UnifiedEventEngine';
+import { RiskEngine } from '../intelligence/RiskEngine';
+import { HealthEngine } from '../intelligence/HealthEngine';
+import { OpportunityEngine } from '../intelligence/OpportunityEngine';
+import { AttentionBudgetEngine } from '../intelligence/AttentionBudgetEngine';
+import { CatchUpEngine } from '../intelligence/CatchUpEngine';
 import { EmailData, SourceCitation, ActionItem, ClassroomCourse, ClassroomCoursework, ClassroomAnnouncement, GoogleCalendarEvent } from '../../types';
 
 export interface ToolExecutionResult {
@@ -411,5 +418,192 @@ export class AIToolRegistry {
 
     return { toolName: 'getRelatedMessages', data: related, citations };
   }
+
+  // 21. searchCampus (Multi-system global search)
+  public searchCampus(query: string): ToolExecutionResult {
+    const q = query.toLowerCase();
+    const emails = this.getDb().getEmails().filter(e =>
+      e.subject.toLowerCase().includes(q) ||
+      e.body.toLowerCase().includes(q) ||
+      (e.location && e.location.toLowerCase().includes(q))
+    );
+    const coursework = this.getDb().getClassroomCoursework().filter(w =>
+      w.title.toLowerCase().includes(q) || w.courseName.toLowerCase().includes(q)
+    );
+    const calEvents = this.getDb().getCalendarEvents().filter(c =>
+      c.title.toLowerCase().includes(q) || (c.location && c.location.toLowerCase().includes(q))
+    );
+
+    const citations: SourceCitation[] = [
+      ...emails.slice(0, 3).map(e => ({ id: e.id, title: e.subject, type: 'gmail', snippet: e.summary })),
+      ...coursework.slice(0, 2).map(w => ({ id: w.id, title: w.title, type: 'classroom', snippet: `Due: ${w.dueDate}` })),
+      ...calEvents.slice(0, 2).map(c => ({ id: c.id, title: c.title, type: 'calendar', snippet: c.startTime }))
+    ];
+
+    return {
+      toolName: 'searchCampus',
+      data: { query, emails: emails.slice(0, 5), coursework: coursework.slice(0, 3), calendarEvents: calEvents.slice(0, 3) },
+      citations
+    };
+  }
+
+  // 22. getUnifiedEvent
+  public getUnifiedEvent(id: string): ToolExecutionResult {
+    const event = UnifiedEventEngine.getInstance().getUnifiedEventById(id);
+    const citations: SourceCitation[] = event ? event.sources.map((s: any) => ({
+      id: s.id,
+      title: s.title,
+      type: s.type,
+      snippet: s.snippet
+    })) : [];
+    return { toolName: 'getUnifiedEvent', data: event || null, citations };
+  }
+
+  // 23. getTimeline
+  public getTimeline(id: string): ToolExecutionResult {
+    const event = UnifiedEventEngine.getInstance().getUnifiedEventById(id);
+    const timeline = event ? event.timeline : [];
+    const citations: SourceCitation[] = timeline.map((t: any) => ({
+      id: `${id}-${t.date}`,
+      title: t.title,
+      type: 'university',
+      snippet: `${t.date}: ${t.description}`
+    }));
+    return { toolName: 'getTimeline', data: timeline, citations };
+  }
+
+  // 24. getChanges
+  public getChanges(): ToolExecutionResult {
+    const changes = RelationshipEngine.getWhatChanged(this.getDb().getEmails());
+    const citations: SourceCitation[] = changes.map(c => ({
+      id: c.emailId,
+      title: c.topic,
+      type: 'university',
+      snippet: c.summary
+    }));
+    return { toolName: 'getChanges', data: changes, citations };
+  }
+
+  // 25. getConflicts
+  public getConflicts(): ToolExecutionResult {
+    const conflicts = ConflictEngine.getInstance().detectConflicts();
+    const citations: SourceCitation[] = conflicts.map((c: any) => ({
+      id: c.id,
+      title: `Conflict in ${c.eventTitle}`,
+      type: 'university',
+      snippet: `${c.sourceA.sourceName} says "${c.sourceA.value}" vs ${c.sourceB.sourceName} says "${c.sourceB.value}"`
+    }));
+    return { toolName: 'getConflicts', data: conflicts, citations };
+  }
+
+  // 26. getDeadlineRisks
+  public getDeadlineRisks(): ToolExecutionResult {
+    const risks = RiskEngine.getInstance().calculateDeadlineRisks();
+    const citations: SourceCitation[] = risks.slice(0, 5).map((r: any) => ({
+      id: r.id,
+      title: `${r.title} (${r.riskLevel})`,
+      type: r.sourceType === 'classroom' ? 'classroom' : 'gmail',
+      snippet: `Due: ${r.dueDate}. ${r.riskReasons[0] || ''}`
+    }));
+    return { toolName: 'getDeadlineRisks', data: risks, citations };
+  }
+
+  // 27. getAttentionBudget
+  public getAttentionBudget(): ToolExecutionResult {
+    const budget = AttentionBudgetEngine.getInstance().getAttentionBudget();
+    const citations: SourceCitation[] = budget.immediate.items.slice(0, 3).map((i: any) => ({
+      id: i.id,
+      title: i.title,
+      type: 'university',
+      snippet: `Immediate: ${i.reason}`
+    }));
+    return { toolName: 'getAttentionBudget', data: budget, citations };
+  }
+
+  // 28. getOpportunities
+  public getOpportunities(): ToolExecutionResult {
+    const opps = OpportunityEngine.getInstance().getOpportunities();
+    const citations: SourceCitation[] = opps.slice(0, 5).map((o: any) => ({
+      id: o.id,
+      title: o.title,
+      type: 'university',
+      snippet: `${o.type} [${o.relevanceScore}% match]: ${o.whyRelevant[0] || ''}`
+    }));
+    return { toolName: 'getOpportunities', data: opps, citations };
+  }
+
+  // 29. getCommunicationHealth
+  public getCommunicationHealth(): ToolExecutionResult {
+    const health = HealthEngine.getInstance().calculateHealthMetrics();
+    const citations: SourceCitation[] = [{
+      id: 'citation-health',
+      title: `Campus Communication Health: Grade ${health.grade} (${health.overallHealthScore}/100)`,
+      type: 'university',
+      snippet: `${health.totalCommunications} notices analyzed. ${health.withDeadlinesPercentage}% deadlines, ${health.conflictingInfoCount} conflicts.`
+    }];
+    return { toolName: 'getCommunicationHealth', data: health, citations };
+  }
+
+  // 30. getCalendarConflicts
+  public async getCalendarConflicts(start?: string, end?: string): Promise<ToolExecutionResult> {
+    const s = start || '2026-09-30T10:00:00.000Z';
+    const e = end || '2026-09-30T16:00:00.000Z';
+    return this.checkCalendarConflict(s, e);
+  }
+
+  // 31. getUpcomingCalendarEvents
+  public getUpcomingCalendarEvents(): ToolExecutionResult {
+    return this.getCalendarEvents();
+  }
+
+  // 32. getSourceComparison
+  public getSourceComparison(id: string): ToolExecutionResult {
+    const truth = UnifiedEventEngine.getInstance().getTruthResolution(id);
+    const citations: SourceCitation[] = truth ? truth.fields.map((f: any) => ({
+      id: `${id}-${f.field}`,
+      title: `${f.field}: ${f.value} [${f.status}]`,
+      type: 'university',
+      snippet: f.authoritativeReason
+    })) : [];
+    return { toolName: 'getSourceComparison', data: truth || null, citations };
+  }
+
+  // 33. getWhyThisMatters
+  public getWhyThisMatters(id: string): ToolExecutionResult {
+    const reasons = UnifiedEventEngine.getInstance().getWhyThisMatters(id);
+    const citations: SourceCitation[] = reasons.map((r: string, i: number) => ({
+      id: `${id}-why-${i}`,
+      title: `Evidence ${i + 1}`,
+      type: 'university',
+      snippet: r
+    }));
+    return { toolName: 'getWhyThisMatters', data: { id, reasons }, citations };
+  }
+
+  // 34. getWhatDidIMiss
+  public getWhatDidIMiss(range: string = 'since_yesterday'): ToolExecutionResult {
+    const report = CatchUpEngine.getInstance().getCatchUpSummary(range as any);
+    const citations: SourceCitation[] = report.highlights.map((h: any) => ({
+      id: h.id,
+      title: h.title,
+      type: 'university',
+      snippet: h.summary
+    }));
+    return { toolName: 'getWhatDidIMiss', data: report, citations };
+  }
+
+  // 35. getCampusBriefing
+  public async getCampusBriefing(): Promise<ToolExecutionResult> {
+    const { AIService } = require('./AIService');
+    const briefing = await AIService.getInstance().generateBriefing(this.getDb().getEmails(), 'Muthu');
+    const citations: SourceCitation[] = briefing.summaryBullets.map((b: any, i: number) => ({
+      id: `bullet-${i}`,
+      title: b.title,
+      type: 'university',
+      snippet: b.description
+    }));
+    return { toolName: 'getCampusBriefing', data: briefing, citations };
+  }
 }
+
 

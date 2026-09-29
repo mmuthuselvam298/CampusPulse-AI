@@ -174,56 +174,122 @@ npm run dev
 
 ---
 
-## 🏆 Judge Demonstration Flow (SIH PS02)
+---
 
-1. **Immediate Out-of-the-Box Value (No Setup Required):**
-   - Open [http://localhost:5173](http://localhost:5173).
-   - Dashboard instantly displays student profile (Muthu, B.Tech CSE AI & ML, Sem 3), real-time Campus Pulse waveform, and top priorities.
-2. **Transparent Priority Reasoning:**
-   - Click on the CRITICAL alert for **CSE 204 Exam Venue Change**.
-   - Review AI Summary, "Why It Matters" (Academic consequence, less than 24 hours remaining, venue relocated to S202 SR Block), and extracted action item.
-3. **Cross-System "What Changed?" Engine:**
-   - Navigate to **What Changed?** in the sidebar.
-   - Observe detected logistics changes: Sept 24 3:00 PM early closure (rain disruption), Sept 25 closure with Oct 10 compensatory working day, STARTUP WARS postponement, and Bus Route 5/8 diversions.
-4. **Google Classroom Intelligence:**
-   - Open **Google Classroom** page.
-   - Inspect active enrolled courses (CSE 213, CSE 204, CEL 101, CSE 207), upcoming assignments with countdown tags, and click **Linked Gmail Notice** to open the associated notification email.
-5. **Grounded AI Assistant with Tool Retrieval:**
-   - Click the bottom-right **Ask CampusPulse** floating button or open **AI Assistant**.
-   - Ask: *"What do I need to do today?"*
-   - Ask: *"Which assignments are due this week?"*
-   - Ask: *"Was the class or event postponed?"*
-   - Observe how the assistant dynamically calls `AIToolRegistry` tools and displays interactive **Grounded Source Citations** (Gmail, Classroom, Calendar) rather than hallucinating.
-6. **Conflict-Protected Google Calendar Event Creation:**
-   - Navigate to **Calendar & Conflict**.
-   - Under AI-Detected Campus Events, find **CSE Expert Talk: Securing Autonomous AI Platforms**.
-   - Click **[ Add to Google Calendar ]**.
-   - A modal performs real-time duplicate and conflict checking against scheduled campus events.
-   - Click **[ Confirm & Add to Calendar ]** to safely schedule the event.
-7. **Connected Accounts & Live Google Sync:**
-   - Navigate to **Connected Accounts**.
-   - Review the status of Google Account, Gmail, Classroom, Calendar, Gemini 3.8 Flash, and Campus Map.
-   - Click **[ Connect Google ]** to test the OAuth flow or click **[ Sync Everything ]** to run the complete ingestion, deduplication, and AI priority recalculation pipeline.
+## 🌟 Unique Features Expansion (Smart India Hackathon PS02)
+
+CampusPulse AI introduces a flagship **Unique Features** suite engineered specifically around the core problem of **"When Systems Don't Understand Each Other"**. All features operate on the **same single source of truth** without synthetic duplication.
+
+| Category | Feature | Route | Description |
+| :--- | :--- | :--- | :--- |
+| **Understand** | **Campus Knowledge Graph** | `/unique-features/knowledge-graph` | Interactive semantic network connecting Courses, Emails, Classroom assignments, Calendar slots, Actions, and Deadlines with zoom, pan, and filter capabilities. |
+| **Understand** | **Information Hub** | `/unique-features/information-hub` | One unified intelligence card per real-world event compressing multiple circulars, reminders, and calendar slots. |
+| **Understand** | **Timeline View** | `/unique-features/timeline` | Chronological multi-system progression tracing how an event was announced, updated, rescheduled, and synchronized. |
+| **Understand** | **Source Comparison** | `/unique-features/source-comparison` | Side-by-side verification comparing exact field values across Gmail, Classroom, and Calendar without hiding discrepancies. |
+| **Detect** | **What Changed Radar** | `/unique-features/changes` | Upgraded detector highlighting BEFORE vs AFTER values for time, date, venue, deadline, and event status with direct Calendar review. |
+| **Detect** | **Information Conflict Detector** | `/unique-features/conflicts` | Flagship PS02 contradiction detector comparing timestamps and explicit update circulars to identify cross-system discrepancies. |
+| **Detect** | **Truth / Resolution View** | `/unique-features/truth-resolution` | Field-by-field verification status (Confirmed, Supported, Conflicting, Unknown) with strict evidence grounding. |
+| **Detect** | **Deadline Risk Detector** | `/unique-features/deadline-risk` | High/Medium/Low risk scoring based on deadline proximity, required actions, submission availability, and reminder velocity. |
+| **Detect** | **Communication Health** | `/unique-features/communication-health` | Real-time analytical audit of university communications measuring clarity, deadline rates, venue completeness, and conflicts. |
+| **Act** | **AI Calendar Planner** | `/unique-features/calendar-planner` | Interactive day organizer with conflict-checking and duplicate prevention before adding suggested study/event slots. |
+| **Act** | **Campus Event Navigator** | `/unique-features/event-navigator` | Physical venue extraction with one-click Google Maps navigation to SRM AP campus buildings and landmarks. |
+| **Act** | **"What Happens If I Ignore This?"** | `/actions` (Per-Action) | Evidence-grounded consequence derivation analyzing real circulars to explain the risk of missing a deadline. |
+| **Personalize** | **"Why This Matters To Me?"** | `/unique-features/why-it-matters` | Concise, traceable rationale explaining why a specific circular or task is relevant to the student's degree and schedule. |
+| **Personalize** | **Opportunity Matcher** | `/unique-features/opportunities` | Discovers hackathons, workshops, research talks, and internships tailored specifically to student context. |
+| **Personalize** | **Attention Budget** | `/unique-features/attention-budget` | Prevents cognitive overload by grouping items into Immediate (<24h), This Week, and Informational with a one-click Focus Mode. |
+| **Personalize** | **"What Did I Miss?"** | `/unique-features/catch-up` | Time-filtered catch-up digest (Today, Since Yesterday, Last 3 Days, Last Week) summarizing key changes and top actions. |
+| **Personalize** | **Smart Notification Digest** | `/unique-features/digest` | Condenses repetitive email threads and reminders into single grouped digest cards. |
+| **Personalize** | **Student Command Center** | `/unique-features/command-center` | Consolidated high-density overview bringing together Budget, Risks, Changes, Conflicts, and Today's Schedule. |
+| **Demo / Trust** | **Campus Chaos Simulator** | `/unique-features/chaos-simulator` | Live pipeline mutation engine simulating Room Changes, Time Changes, Cancellations, Closures, and Conflicts through the real ingestion and graph pipeline. |
+| **Demo / Trust** | **Explain AI Decision** | `/unique-features/explain` | Evidence-based explanation panel showing exact scoring weights and source citations behind every priority score. |
+| **Demo / Trust** | **Privacy Center** | `/unique-features/privacy` | Transparent permission inspector showing Read-Only guarantees, server-side token security, and instant Google Account disconnect. |
+| **AI** | **Campus AI Briefing** | `/unique-features/briefing` | Structured morning briefing synthesizing today's agenda, next 24 hours, critical changes, and deadline risks. |
+| **AI** | **Voice Campus Assistant** | Assistant Drawer | Browser Web Speech API integration (`🎙 Ask CampusPulse`) allowing hands-free queries with graceful fallback. |
+| **AI** | **Campus Intelligence Search** | `/unique-features/search` | Global multi-system search querying subjects, senders, assignments, rooms, and dates across all connected systems. |
+
+---
+
+## 🏆 Flagship Hackathon Demonstration Flow (PS02)
+
+To demonstrate why CampusPulse AI is a true cross-system intelligence layer and not just an email summarizer, follow this exact 22-step live demonstration:
+
+1. **Open CampusPulse AI:** Launch the dashboard and note the live Campus Pulse waveform and prioritized notices.
+2. **Access Unique Features:** Click **Unique Features** in the sidebar to open the 6-category intelligence landing page (`/unique-features`).
+3. **Campus Knowledge Graph:** Open `/unique-features/knowledge-graph`. View how CSE 213 connects Gmail circulars, Classroom assignments, Calendar slots, and synthesized Action items.
+4. **Interactive Node Detail:** Click on any node (e.g. Gmail notice or Classroom assignment) to inspect its full metadata and source links.
+5. **What Changed Radar:** Navigate to `/unique-features/changes`. Observe the detected logistics shift: **Robotics Workshop venue relocated from Room S202 to Room S204**.
+6. **Cross-System Conflict Detector:** Open `/unique-features/conflicts`. Witness the core PS02 challenge:
+   - **Source A (Gmail):** 10:00 AM
+   - **Source B (Calendar):** 11:00 AM
+   - CampusPulse flags the conflict and notes: *"Latest university communication indicates 11:00 AM."*
+7. **Source Comparison:** Open `/unique-features/source-comparison` to view side-by-side evidence columns for Gmail, Classroom, and Calendar without hiding discrepancies.
+8. **Information Truth Resolution:** Open `/unique-features/truth-resolution` to see the field-by-field verification badges (Confirmed, Supported, Conflicting, Unknown).
+9. **Why This Matters:** Open `/unique-features/why-it-matters`. Inspect the student-specific rationale: CSE/AI context, less than 24 hours remaining, participation required.
+10. **Deadline Risk Radar:** Navigate to `/unique-features/deadline-risk`. View approaching assignments with HIGH ATTENTION tags and clear reasons why risk was elevated.
+11. **Action Consequences:** Go to **Actions** page and click **[ What happens if I ignore this? ]** on any task to see evidence-grounded repercussions extracted from circulars.
+12. **AI Calendar Planner:** Open `/unique-features/calendar-planner`. Click **"Organize my day"** to generate an optimized schedule.
+13. **Safe Calendar Insertion:** On any suggested schedule item, click **[ Add to Calendar ]**. Notice how the system automatically checks for overlapping calendar slots and prompts for confirmation.
+14. **Opportunity Matcher:** Open `/unique-features/opportunities` to see hackathons and workshops matched specifically to the B.Tech CSE AI & ML student profile.
+15. **Attention Budget:** Open `/unique-features/attention-budget`. Toggle **Focus Mode** to filter out informational circulars and spotlight only immediate action items.
+16. **What Did I Miss?:** Open `/unique-features/catch-up`. Select *"Since Yesterday"* to get an instant 3-bullet summary of critical changes and top actions.
+17. **Communication Health:** Open `/unique-features/communication-health` to view real-time statistics calculated on the actual dataset (deadline percentage, venue completeness, duplicate notices).
+18. **Campus Event Navigator:** Open `/unique-features/event-navigator` and click **[ Open in Google Maps ]** to route to the exact SRM AP campus building.
+19. **Voice Assistant:** Click **Ask CampusPulse** drawer, click the **🎙 Mic button**, and speak *"What do I have tomorrow?"*. Observe the speech-to-text conversion and grounded answer.
+20. **Privacy Center:** Open `/unique-features/privacy`. Show the read-only permission matrix, server-side token security, and **[ Disconnect Google ]** capability.
+21. **Campus Chaos Simulator:** Navigate to `/unique-features/chaos-simulator`.
+22. **Trigger Real-Time Disruption:** Click **[ Simulate Deadline Change ]** or **[ Simulate Room Change ]**. Watch the live pipeline automatically:
+    - Ingest the synthetic circular
+    - Detect the relationship to the existing event
+    - Update What Changed
+    - Flag the conflict in the Conflict Detector
+    - Recalculate priority scores
+    - Update the Knowledge Graph and Dashboard in real time!
 
 ---
 
 ## 🧪 Testing & Verification
 
-The test suite (`server/test/priorityEngine.test.ts`) verifies:
-1. **Gmail normalization:** Base64 MIME decoding and header extraction.
-2. **Gmail deduplication & idempotency:** Repeated syncs do not create duplicate records.
-3. **University filtering:** Institutional domain verification and Classroom notification whitelisting.
-4. **Classroom normalization:** Active courses, coursework due dates, and announcement linking.
-5. **Calendar conflict detection:** Overlapping time window calculation.
-6. **Calendar duplicate prevention:** Prevents identical event insertion.
-7. **Priority calculation:** 13-factor explainable scoring.
-8. **Action extraction:** Actionable task generation with deadlines.
-9. **Relationship detection:** Topic clustering and schedule change detection.
-10. **Demo dataset count:** Confirms EXACTLY 50 high-quality SRM AP communications.
-11. **AI tool retrieval:** Dynamic tool execution through `AIToolRegistry`.
-12. **Source grounding:** Traceable citations attached to AI answers.
+CampusPulse AI features an extensive automated test suite with **35 passing unit and integration tests**:
 
-Run tests anytime with:
 ```bash
-npm test
+npm --prefix server test
 ```
+
+### Test Coverage Highlights:
+- **PriorityEngine (5 tests):** Validates CRITICAL/HIGH/MEDIUM/LOW priority scoring across SRM AP exam venue changes, rain closures, and attendance warnings.
+- **UniversityFilter (2 tests):** Confirms `@srmap.edu.in` domain enforcement and noise rejection.
+- **ActionExtractor (1 test):** Confirms structured task extraction and deadline parsing.
+- **RelationshipEngine (1 test):** Confirms schedule change and postponement detection.
+- **FallbackAIProvider (1 test):** Confirms deterministic offline categorization and entity extraction.
+- **Demo Dataset (2 tests):** Guarantees EXACTLY 50 university emails covering all required scenarios.
+- **Google Calendar Integration (3 tests):** Validates conflict detection, free slots, and duplicate prevention.
+- **Google Classroom Integration (1 test):** Confirms active course ingestion, coursework deadlines, and linked emails.
+- **AI Tool Retrieval & Grounding (2 tests):** Validates grounded responses with interactive citations.
+- **Gmail Normalization (2 tests):** Validates base64 MIME decoding and Classroom notice whitelisting.
+- **Unique Features Suite (15 tests):**
+  - Knowledge graph node and edge generation
+  - Cross-system contradiction detection (Gmail vs Calendar)
+  - Information truth resolution with field-level sources
+  - Evidence-based "Why This Matters" derivation
+  - Deadline risk calculations
+  - AI Calendar day planner with conflict safeguards
+  - Unified Event synthesis (compressing 3+ notices into 1)
+  - Time-filtered "What Did I Miss?" catch-up reports
+  - Live communication health metrics on the 50-email dataset
+  - CSE/AI opportunity matching
+  - Attention budget tiers and Focus Mode filtering
+  - Live Chaos Simulator pipeline mutations
+  - Action consequence analysis without hallucinations
+  - Smart notification digest grouping
+  - AIToolRegistry tool catalog completeness
+
+---
+
+## 🔒 Security & Privacy Commitments
+
+- **No Secrets Committed:** API keys and OAuth secrets are strictly configured via environment variables.
+- **Server-Side Token Storage:** OAuth access/refresh tokens are maintained in secure server memory and never sent to the browser.
+- **Read-Only Scopes:** Gmail and Classroom integrations are strictly read-only.
+- **Zero Hallucination Grounding:** If university communication lacks sufficient evidence, the system explicitly reports *"Unknown"* or *"Status Unavailable"*.
+- **No Silent Actions:** Calendar events are never written without prior duplicate/conflict checks and explicit user confirmation.
+

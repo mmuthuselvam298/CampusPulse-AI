@@ -8,7 +8,9 @@ import {
   ExternalLink,
   HelpCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ApiService } from '../../services/api';
@@ -43,7 +45,56 @@ export const AIChatDrawer: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setInput(transcript);
+          handleSend(transcript);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleVoice = () => {
+    if (!speechSupported || !recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error('Speech recognition error:', err);
+        setIsListening(false);
+      }
+    }
+  };
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -223,6 +274,21 @@ export const AIChatDrawer: React.FC = () => {
 
       {/* Input Bar */}
       <div className="p-3 border-t border-slate-100 bg-white">
+        {isListening && (
+          <div className="mb-2 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-between text-xs text-rose-700 animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+              <span className="font-semibold">Listening to voice command...</span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleVoice}
+              className="text-[11px] font-bold underline hover:text-rose-900"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -230,11 +296,26 @@ export const AIChatDrawer: React.FC = () => {
           }}
           className="flex items-center gap-2"
         >
+          {speechSupported && (
+            <button
+              type="button"
+              onClick={toggleVoice}
+              title={isListening ? 'Stop listening' : '🎙 Ask CampusPulse (Voice)'}
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                isListening
+                  ? 'bg-rose-600 text-white border-rose-600 animate-bounce'
+                  : 'bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border-slate-200'
+              }`}
+              aria-label="Voice input"
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+          )}
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about exams, attendance, buses..."
+            placeholder={isListening ? 'Listening...' : 'Ask about exams, attendance, buses...'}
             className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 transition-all"
           />
           <button

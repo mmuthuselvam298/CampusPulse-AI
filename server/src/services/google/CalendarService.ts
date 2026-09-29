@@ -59,6 +59,18 @@ export class CalendarService {
         location: 'APJ Abdul Kalam Auditorium',
         isAllDay: false,
         source: 'google'
+      },
+      {
+        id: 'cal-event-5',
+        title: 'Hands-On Robotics Workshop (Techfest IIT Bombay)',
+        description: 'Autonomous Kinematics and ROS integration session. Microcontrollers distributed.',
+        startTime: '2026-09-30T11:00:00.000Z',
+        endTime: '2026-09-30T16:00:00.000Z',
+        location: 'Room S204, SR Block',
+        isAllDay: false,
+        source: 'google',
+        sourceType: 'google',
+        sourceId: 'email-srm-002'
       }
     ];
   }

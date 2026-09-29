@@ -7,13 +7,18 @@ import {
   ExternalLink,
   Plus,
   AlertCircle,
-  AlertTriangle,
   Sparkles,
-  Calendar
+  Calendar,
+  HelpCircle,
+  ShieldAlert,
+  ChevronDown,
+  ChevronUp,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
-import { ActionItem } from '../../types';
+import { ActionItem, ConsequenceAnalysis } from '../../types';
+import { ApiService } from '../../services/api';
 
 export const ActionChecklist: React.FC = () => {
   const { actions, toggleAction, openEmailById } = useApp();
@@ -21,6 +26,32 @@ export const ActionChecklist: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDeadline, setNewDeadline] = useState('');
+  const [consequenceMap, setConsequenceMap] = useState<Record<string, ConsequenceAnalysis>>({});
+  const [expandedConsequence, setExpandedConsequence] = useState<Record<string, boolean>>({});
+  const [loadingConsequence, setLoadingConsequence] = useState<Record<string, boolean>>({});
+
+  const handleFetchConsequence = async (actionId: string) => {
+    if (expandedConsequence[actionId]) {
+      setExpandedConsequence(prev => ({ ...prev, [actionId]: false }));
+      return;
+    }
+
+    if (consequenceMap[actionId]) {
+      setExpandedConsequence(prev => ({ ...prev, [actionId]: true }));
+      return;
+    }
+
+    setLoadingConsequence(prev => ({ ...prev, [actionId]: true }));
+    try {
+      const data = await ApiService.getConsequence(actionId);
+      setConsequenceMap(prev => ({ ...prev, [actionId]: data }));
+      setExpandedConsequence(prev => ({ ...prev, [actionId]: true }));
+    } catch (err) {
+      console.error('Failed to fetch consequence', err);
+    } finally {
+      setLoadingConsequence(prev => ({ ...prev, [actionId]: false }));
+    }
+  };
 
   const handleToggle = (id: string, currentlyCompleted: boolean) => {
     if (!currentlyCompleted) {
@@ -184,8 +215,8 @@ export const ActionChecklist: React.FC = () => {
                     {action.title}
                   </p>
 
-                  {/* Backlink to Source Email */}
-                  <div className="mt-2 flex items-center gap-2">
+                  {/* Backlink to Source Email & Actions */}
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
                     <button
                       onClick={() => openEmailById(action.emailId)}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
@@ -193,7 +224,63 @@ export const ActionChecklist: React.FC = () => {
                       <span>From: {action.sourceEmailSubject}</span>
                       <ExternalLink className="w-3 h-3" />
                     </button>
+
+                    <button
+                      onClick={() => handleFetchConsequence(action.id)}
+                      disabled={loadingConsequence[action.id]}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      {loadingConsequence[action.id] ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                      ) : (
+                        <HelpCircle className="w-3 h-3 text-amber-600" />
+                      )}
+                      <span>What happens if I ignore this?</span>
+                      {expandedConsequence[action.id] ? (
+                        <ChevronUp className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
+                      )}
+                    </button>
                   </div>
+
+                  {/* Consequence Drawer */}
+                  {expandedConsequence[action.id] && consequenceMap[action.id] && (
+                    <div className="mt-3 p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
+                          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Estimated Consequence</span>
+                        </span>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          consequenceMap[action.id].supportedByEvidence
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}>
+                          {consequenceMap[action.id].supportedByEvidence ? 'GROUNDED EVIDENCE' : 'GENERAL ESTIMATE'}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        {consequenceMap[action.id].consequences.map((c: string, idx: number) => (
+                          <p key={idx} className="text-xs font-semibold text-amber-950 leading-relaxed">
+                            • {c}
+                          </p>
+                        ))}
+                      </div>
+
+                      {consequenceMap[action.id].evidenceSnippet && (
+                        <div className="pt-2 border-t border-amber-200/50">
+                          <p className="text-[10px] font-bold text-amber-800 mb-0.5">
+                            Source ({consequenceMap[action.id].evidenceSource}):
+                          </p>
+                          <p className="text-[11px] italic text-amber-900 bg-white/60 p-1.5 rounded border border-amber-200/60">
+                            "{consequenceMap[action.id].evidenceSnippet}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );
