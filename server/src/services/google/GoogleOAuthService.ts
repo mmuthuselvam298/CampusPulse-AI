@@ -1,10 +1,9 @@
 import { google } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
 import { GoogleServiceStatus } from '../../types';
 
 export class GoogleOAuthService {
   private static instance: GoogleOAuthService;
-  private oauth2Client: OAuth2Client;
+  private oauth2Client: any;
   private isConnected: boolean = false;
   private userEmail: string | null = null;
   private userName: string | null = null;
@@ -69,7 +68,7 @@ export class GoogleOAuthService {
     }
   }
 
-  public getClient(): OAuth2Client {
+  public getClient(): any {
     return this.oauth2Client;
   }
 

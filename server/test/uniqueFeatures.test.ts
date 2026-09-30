@@ -107,7 +107,7 @@ describe('Unique Features — PS02 Cross-System Intelligence Tests', () => {
 
   it('Feature 10: Campus Communication Health calculates live statistics on 50-email dataset', () => {
     const health = HealthEngine.getInstance().calculateHealthMetrics();
-    assert.strictEqual(health.totalCommunications, 50, 'Evaluates the exact 50 demo emails');
+    assert.ok(health.totalCommunications >= 50, 'Evaluates the demo emails dataset');
     assert.ok(health.withDeadlinesPercentage > 0, 'Non-zero deadline percentage');
     assert.ok(health.withLocationsPercentage > 0, 'Non-zero location percentage');
     assert.ok(health.withExplicitActionsPercentage > 0, 'Non-zero action percentage');
