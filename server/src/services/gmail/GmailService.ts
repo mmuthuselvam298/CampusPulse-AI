@@ -78,7 +78,7 @@ export class GmailService {
     }
 
     const auth = oauthService.getClient();
-    const gmail = google.gmail({ version: 'v1', auth });
+    const gmail = google.gmail({ version: 'v1', auth: auth as any });
 
     // Build query: fetch university-related messages from the configured timeframe
     const afterDate = new Date();

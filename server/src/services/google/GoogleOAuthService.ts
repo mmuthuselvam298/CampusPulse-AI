@@ -55,7 +55,7 @@ export class GoogleOAuthService {
       this.isConnected = true;
 
       // Fetch user profile info
-      const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
+      const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client as any });
       const userInfo = await oauth2.userinfo.get();
       this.userEmail = userInfo.data.email || 'connected.student@srmap.edu.in';
       this.userName = userInfo.data.name || 'SRM AP Student';

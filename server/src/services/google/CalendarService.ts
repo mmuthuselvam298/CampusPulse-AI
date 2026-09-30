@@ -32,7 +32,7 @@ export class CalendarService {
 
     try {
       const auth = oauth.getClient();
-      const calendar = google.calendar({ version: 'v3', auth });
+      const calendar = google.calendar({ version: 'v3', auth: auth as any });
 
       const res = await calendar.events.list({
         calendarId: 'primary',
@@ -159,7 +159,7 @@ export class CalendarService {
     if (oauth.isAuthConnected()) {
       try {
         const auth = oauth.getClient();
-        const calendar = google.calendar({ version: 'v3', auth });
+        const calendar = google.calendar({ version: 'v3', auth: auth as any });
 
         const inserted = await calendar.events.insert({
           calendarId: 'primary',
@@ -245,7 +245,7 @@ export class CalendarService {
     if (oauth.isAuthConnected()) {
       try {
         const auth = oauth.getClient();
-        const calendar = google.calendar({ version: 'v3', auth });
+        const calendar = google.calendar({ version: 'v3', auth: auth as any });
         await calendar.events.delete({
           calendarId: 'primary',
           eventId

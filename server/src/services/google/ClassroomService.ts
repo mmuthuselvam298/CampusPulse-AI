@@ -38,7 +38,7 @@ export class ClassroomService {
 
     try {
       const auth = oauthService.getClient();
-      const classroom = google.classroom({ version: 'v1', auth });
+      const classroom = google.classroom({ version: 'v1', auth: auth as any });
 
       // 1. Fetch courses where student is enrolled
       const coursesRes = await classroom.courses.list({
