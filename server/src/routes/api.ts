@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { DatabaseService } from '../db/DatabaseService';
+import { SQLiteService } from '../db/SQLiteService';
 import { AIService } from '../services/ai/AIService';
-import { GmailService } from '../services/gmail/GmailService';
 import { RelationshipEngine } from '../services/relationships/RelationshipEngine';
 import { UniversityFilter } from '../services/filter/UniversityFilter';
 import { ConflictEngine } from '../services/intelligence/ConflictEngine';
@@ -14,13 +14,16 @@ import { KnowledgeGraphEngine } from '../services/intelligence/KnowledgeGraphEng
 import { CalendarPlannerEngine } from '../services/intelligence/CalendarPlannerEngine';
 import { CatchUpEngine } from '../services/intelligence/CatchUpEngine';
 import { DigestEngine } from '../services/intelligence/DigestEngine';
-import { ChaosSimulatorEngine } from '../services/intelligence/ChaosSimulatorEngine';
+import { SyncManager } from '../services/google/SyncManager';
 
 export const apiRouter = Router();
 const db = DatabaseService.getInstance();
+const sqlite = SQLiteService.getInstance();
 const ai = AIService.getInstance();
 
+// ============================================================
 // 1. DASHBOARD
+// ============================================================
 apiRouter.get('/dashboard', async (_req: Request, res: Response) => {
   try {
     const data = await db.getDashboardData();
@@ -31,113 +34,72 @@ apiRouter.get('/dashboard', async (_req: Request, res: Response) => {
   }
 });
 
-// 2. EMAILS LIST & SEARCH
+// ============================================================
+// 2. EMAILS
+// ============================================================
 apiRouter.get('/emails', (req: Request, res: Response) => {
   try {
-    let emails = db.getEmails();
-    const { priority, category, search, unread, source, sortBy } = req.query;
-
-    if (priority && typeof priority === 'string' && priority !== 'ALL') {
-      emails = emails.filter(e => e.priority.toUpperCase() === priority.toUpperCase());
-    }
-
-    if (category && typeof category === 'string' && category !== 'ALL') {
-      emails = emails.filter(e => e.category.toUpperCase() === category.toUpperCase());
-    }
-
-    if (unread === 'true') {
-      emails = emails.filter(e => !e.isRead);
-    }
-
-    if (source && typeof source === 'string') {
-      emails = emails.filter(e => e.source === source);
-    }
-
-    if (search && typeof search === 'string') {
-      const q = search.toLowerCase();
-      emails = emails.filter(e => 
-        e.subject.toLowerCase().includes(q) ||
-        e.body.toLowerCase().includes(q) ||
-        e.sender.toLowerCase().includes(q) ||
-        e.senderName.toLowerCase().includes(q) ||
-        e.category.toLowerCase().includes(q) ||
-        (e.location && e.location.toLowerCase().includes(q)) ||
-        (e.actionText && e.actionText.toLowerCase().includes(q)) ||
-        e.tags.some(t => t.toLowerCase().includes(q))
-      );
-    }
-
-    // Sort options
-    if (sortBy === 'deadline') {
-      emails.sort((a, b) => {
-        if (!a.deadlineDate) return 1;
-        if (!b.deadlineDate) return -1;
-        return new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime();
-      });
-    } else if (sortBy === 'priority') {
-      emails.sort((a, b) => b.priorityScore - a.priorityScore);
-    } else {
-      // Default: recency
-      emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }
-
-    res.json({
-      total: emails.length,
-      emails
+    const { priority, category, search, unread, source, sortBy, limit, offset } = req.query;
+    const emails = sqlite.getEmails({
+      priority: priority as string,
+      category: category as string,
+      search: search as string,
+      unread: unread === 'true',
+      source: source as string,
+      sortBy: sortBy as string,
+      limit: limit ? parseInt(limit as string) : undefined,
+      offset: offset ? parseInt(offset as string) : undefined,
     });
+    res.json({ total: emails.length, emails });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch emails' });
   }
 });
 
-// 3. EMAIL DETAIL
 apiRouter.get('/emails/:id', (req: Request, res: Response) => {
-  const email = db.getEmailById(req.params.id);
+  const email = sqlite.getEmailById(req.params.id);
   if (!email) {
     res.status(404).json({ error: 'Email not found' });
     return;
   }
-  // Auto-mark read on detail open
-  db.markEmailRead(email.id, true);
+  sqlite.markEmailRead(email.id, true);
   res.json(email);
 });
 
-// 4. ON-DEMAND AI ANALYSIS
 apiRouter.post('/emails/:id/analyze', async (req: Request, res: Response) => {
   try {
-    const email = db.getEmailById(req.params.id);
+    const email = sqlite.getEmailById(req.params.id);
     if (!email) {
       res.status(404).json({ error: 'Email not found' });
       return;
     }
-
     const analysis = await ai.analyzeEmail({
-      subject: email.subject,
-      body: email.body,
-      sender: email.sender
+      subject: email.subject, body: email.body, sender: email.sender
     });
-
-    // Update email with new analysis
-    email.category = analysis.category;
-    email.priority = analysis.priority;
-    email.priorityScore = analysis.priorityScore;
-    email.priorityReason = analysis.reason;
-    email.categoryReason = analysis.categoryReason;
-    email.summary = analysis.summary;
-    if (analysis.action) email.actionText = analysis.action;
-    if (analysis.deadline) email.actionDeadline = analysis.deadline;
-    if (analysis.location) email.location = analysis.location;
-
-    res.json({ email, analysis });
+    const updatedEmail = {
+      ...email,
+      category: analysis.category,
+      priority: analysis.priority,
+      priorityScore: analysis.priorityScore,
+      priorityReason: analysis.reason,
+      categoryReason: analysis.categoryReason,
+      summary: analysis.summary,
+      actionText: analysis.action || email.actionText,
+      actionDeadline: analysis.deadline || email.actionDeadline,
+      location: analysis.location || email.location,
+      actionRequired: analysis.actionRequired,
+      aiAnalyzed: true,
+    };
+    sqlite.upsertEmail(updatedEmail as any);
+    res.json({ email: updatedEmail, analysis });
   } catch (err) {
     res.status(500).json({ error: 'AI analysis failed' });
   }
 });
 
-// 5. MARK READ / UNREAD
 apiRouter.post('/emails/:id/read', (req: Request, res: Response) => {
   const { isRead = true } = req.body;
-  const success = db.markEmailRead(req.params.id, isRead);
+  const success = sqlite.markEmailRead(req.params.id, isRead);
   if (!success) {
     res.status(404).json({ error: 'Email not found' });
     return;
@@ -145,14 +107,16 @@ apiRouter.post('/emails/:id/read', (req: Request, res: Response) => {
   res.json({ success: true, emailId: req.params.id, isRead });
 });
 
-// 6. ACTIONS (TASKS)
+// ============================================================
+// 3. ACTIONS
+// ============================================================
 apiRouter.get('/actions', (_req: Request, res: Response) => {
-  const actions = db.getActions();
+  const actions = sqlite.getActions();
   res.json({ actions, total: actions.length });
 });
 
 apiRouter.post('/actions/:id/toggle', (req: Request, res: Response) => {
-  const action = db.toggleAction(req.params.id);
+  const action = sqlite.toggleAction(req.params.id);
   if (!action) {
     res.status(404).json({ error: 'Action item not found' });
     return;
@@ -166,7 +130,8 @@ apiRouter.post('/actions', (req: Request, res: Response) => {
     res.status(400).json({ error: 'Task title is required' });
     return;
   }
-  const newAction = db.addAction({
+  const user = sqlite.getUser();
+  const newAction = sqlite.addAction({
     emailId: 'custom',
     title,
     category: category || 'GENERAL',
@@ -174,25 +139,29 @@ apiRouter.post('/actions', (req: Request, res: Response) => {
     deadline: deadline || 'Today',
     completed: false,
     sourceEmailSubject: sourceEmailSubject || 'Manual Task',
-    sourceSender: 'Student Muthu',
+    sourceSender: user?.name || 'Student',
     location
   });
   res.status(201).json(newAction);
 });
 
-// 7. DAILY BRIEFING
+// ============================================================
+// 4. BRIEFING
+// ============================================================
 apiRouter.get('/briefing', async (_req: Request, res: Response) => {
   try {
-    const emails = db.getEmails();
-    const student = db.getStudentProfile();
-    const briefing = await ai.generateBriefing(emails, student.name);
+    const emails = sqlite.getEmails({ limit: 20 });
+    const user = sqlite.getUser();
+    const briefing = await ai.generateBriefing(emails, user?.name || 'Student');
     res.json(briefing);
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate campus briefing' });
   }
 });
 
-// 8. CAMPUS ASSISTANT
+// ============================================================
+// 5. ASSISTANT
+// ============================================================
 apiRouter.post('/assistant', async (req: Request, res: Response) => {
   try {
     const { query } = req.body;
@@ -200,9 +169,8 @@ apiRouter.post('/assistant', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Query is required' });
       return;
     }
-
-    const emails = db.getEmails();
-    const actions = db.getActions();
+    const emails = sqlite.getEmails({ limit: 30 });
+    const actions = sqlite.getActions();
     const response = await ai.answerCampusQuery(query, emails, actions);
     res.json(response);
   } catch (err) {
@@ -210,43 +178,27 @@ apiRouter.post('/assistant', async (req: Request, res: Response) => {
   }
 });
 
-// 9. EMAIL RELATIONSHIPS & "WHAT CHANGED?"
+// ============================================================
+// 6. RELATIONSHIPS
+// ============================================================
 apiRouter.get('/relationships', (_req: Request, res: Response) => {
-  const emails = db.getEmails();
+  const emails = sqlite.getEmails();
   const clusters = RelationshipEngine.clusterByTopic(emails);
   const whatChanged = RelationshipEngine.getWhatChanged(emails);
   res.json({ clusters, whatChanged });
 });
 
-// 10. DEMO CONTROLS
-apiRouter.post('/demo/simulate-email', (req: Request, res: Response) => {
-  const { scenario } = req.body;
-  const simulated = db.simulateNewEmail(scenario);
-  res.json({
-    message: 'New simulated email arrived and analyzed successfully!',
-    email: simulated
-  });
-});
-
-apiRouter.post('/demo/reset', (_req: Request, res: Response) => {
-  db.loadInitialDataset();
-  ai.clearCache();
-  res.json({ message: 'Demo dataset reset to pristine initial state' });
-});
-
-apiRouter.get('/demo/status', (_req: Request, res: Response) => {
-  res.json({
-    mode: db.getMode(),
-    activeAIProvider: ai.getActiveProviderName(),
-    totalEmails: db.getEmails().length,
-    allowedDomains: UniversityFilter.getAllowedDomains()
-  });
-});
-
-// 11. ONE GOOGLE OAUTH & STATUS
+// ============================================================
+// 7. GOOGLE OAUTH
+// ============================================================
 apiRouter.get('/google/oauth/start', (_req: Request, res: Response) => {
   const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
-  const url = GoogleOAuthService.getInstance().getAuthUrl();
+  const oauth = GoogleOAuthService.getInstance();
+  if (!process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID.length < 5) {
+    res.status(500).json({ error: 'Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env' });
+    return;
+  }
+  const url = oauth.getAuthUrl();
   res.json({ authUrl: url });
 });
 
@@ -259,10 +211,32 @@ apiRouter.get('/google/oauth/callback', async (req: Request, res: Response) => {
     }
 
     const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
-    const success = await GoogleOAuthService.getInstance().handleCallback(code);
+    const oauth = GoogleOAuthService.getInstance();
+    const result = await oauth.handleCallback(code);
 
-    if (success) {
-      db.setMode('gmail');
+    if (result) {
+      // Create/update user in database
+      const userInfo = {
+        googleSubjectId: result.sub || undefined,
+        email: result.email || oauth.getStatus().userEmail || 'student@srmap.edu.in',
+        name: result.name || oauth.getStatus().userName || 'Student',
+        picture: result.picture || oauth.getStatus().userPicture || undefined,
+      };
+      const user = sqlite.upsertUser(userInfo);
+
+      // Store connection in database
+      if (user) {
+        sqlite.upsertGoogleConnection(user.id, {
+          isConnected: true,
+          scopes: JSON.stringify(GoogleOAuthService.REQUIRED_SCOPES),
+        });
+      }
+
+      // Trigger initial sync
+      SyncManager.getInstance().syncAll().catch(err => {
+        console.warn('Post-OAuth initial sync error:', err);
+      });
+
       const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
       res.redirect(`${clientUrl}/connections?google_connected=true`);
     } else {
@@ -275,53 +249,86 @@ apiRouter.get('/google/oauth/callback', async (req: Request, res: Response) => {
 
 apiRouter.get('/google/status', (_req: Request, res: Response) => {
   const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
-  res.json(GoogleOAuthService.getInstance().getStatus());
+  const status = GoogleOAuthService.getInstance().getStatus();
+
+  // Enrich with actual database counts
+  const stats = sqlite.getStats();
+  const syncStates = sqlite.getAllSyncStates();
+  const syncMap: Record<string, any> = {};
+  syncStates.forEach((s: any) => { syncMap[s.service] = s; });
+
+  if (status.gmail) {
+    status.gmail.messageCount = stats.emails;
+    status.gmail.lastSync = syncMap.gmail?.last_sync || status.gmail.lastSync;
+  }
+  if (status.classroom) {
+    status.classroom.courseCount = stats.courses;
+    status.classroom.assignmentCount = stats.coursework;
+    status.classroom.announcementCount = stats.announcements;
+    status.classroom.lastSync = syncMap.classroom?.last_sync || status.classroom.lastSync;
+  }
+  if (status.calendar) {
+    status.calendar.eventCount = stats.calendarEvents;
+    status.calendar.lastSync = syncMap.calendar?.last_sync || status.calendar.lastSync;
+  }
+
+  res.json(status);
 });
 
 apiRouter.post('/google/disconnect', (_req: Request, res: Response) => {
   const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
   GoogleOAuthService.getInstance().disconnect();
-  db.setMode('demo');
-  res.json({ message: 'Disconnected Google account. Reverted to Demo Mode.', isConnected: false });
+  SyncManager.getInstance().stopBackgroundSync();
+  const user = sqlite.getUser();
+  if (user) {
+    sqlite.disconnectGoogle(user.id);
+  }
+  res.json({ message: 'Disconnected Google account.', isConnected: false });
 });
 
-// UNIFIED GOOGLE SYNC (Gmail + Classroom + Calendar)
+// ============================================================
+// 8. SYNC
+// ============================================================
 apiRouter.post('/google/sync', async (_req: Request, res: Response) => {
   try {
-    const { SyncService } = require('../services/google/SyncService');
-    const result = await SyncService.getInstance().syncAll();
+    const result = await SyncManager.getInstance().syncAll();
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Google sync failed' });
   }
 });
 
-// 12. CLASSROOM API
+apiRouter.get('/sync/status', (_req: Request, res: Response) => {
+  const syncStates = sqlite.getAllSyncStates();
+  const isSyncing = SyncManager.getInstance().isSyncInProgress();
+  res.json({ isSyncing, services: syncStates });
+});
+
+// ============================================================
+// 9. CLASSROOM
+// ============================================================
 apiRouter.get('/classroom/courses', (_req: Request, res: Response) => {
   res.json(db.getClassroomCourses());
 });
 
 apiRouter.get('/classroom/coursework', (req: Request, res: Response) => {
   const { courseId } = req.query;
-  let work = db.getClassroomCoursework();
-  if (courseId && typeof courseId === 'string') {
-    work = work.filter(w => w.courseId === courseId);
-  }
+  const work = sqlite.getClassroomCoursework(courseId as string || undefined);
   res.json(work);
 });
 
 apiRouter.get('/classroom/announcements', (req: Request, res: Response) => {
   const { courseId } = req.query;
-  let ann = db.getClassroomAnnouncements();
-  if (courseId && typeof courseId === 'string') {
-    ann = ann.filter(a => a.courseId === courseId);
-  }
+  const ann = sqlite.getClassroomAnnouncements(courseId as string || undefined);
   res.json(ann);
 });
 
-// 13. CALENDAR API & CONFLICT DETECTION
+// ============================================================
+// 10. CALENDAR
+// ============================================================
 apiRouter.get('/calendar/events', (_req: Request, res: Response) => {
-  res.json(db.getCalendarEvents());
+  const events = sqlite.getCalendarEvents();
+  res.json(events);
 });
 
 apiRouter.post('/calendar/check-conflict', async (req: Request, res: Response) => {
@@ -361,21 +368,13 @@ apiRouter.post('/calendar/events', async (req: Request, res: Response) => {
       return;
     }
 
-    const created = await calendarService.createEvent({
-      title,
-      startTime,
-      endTime,
-      description,
-      location,
-      sourceId
-    });
+    const created = await calendarService.createEvent({ title, startTime, endTime, description, location, sourceId });
 
-    // Mark email as added to calendar if source was an email
-    if (sourceId) {
-      const email = db.getEmailById(sourceId);
-      if (email) {
-        email.isCalendarAdded = true;
-        email.calendarEventId = created.event.id;
+    // Persist to SQLite
+    if (created.event) {
+      sqlite.upsertCalendarEvent(created.event);
+      if (sourceId) {
+        sqlite.upsertCalendarMapping(sourceId, 'email', created.event.id);
       }
     }
 
@@ -395,44 +394,9 @@ apiRouter.delete('/calendar/events/:id', async (req: Request, res: Response) => 
   }
 });
 
-// BACKWARD-COMPATIBLE GMAIL ROUTES
-apiRouter.get('/gmail/auth-url', (_req: Request, res: Response) => {
-  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
-  res.json({ authUrl: GoogleOAuthService.getInstance().getAuthUrl() });
-});
-
-apiRouter.get('/gmail/status', (_req: Request, res: Response) => {
-  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
-  const status = GoogleOAuthService.getInstance().getStatus();
-  res.json({
-    isConnected: status.connected,
-    userEmail: status.userEmail,
-    scope: 'https://www.googleapis.com/auth/gmail.readonly'
-  });
-});
-
-apiRouter.post('/gmail/disconnect', (_req: Request, res: Response) => {
-  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
-  GoogleOAuthService.getInstance().disconnect();
-  db.setMode('demo');
-  res.json({ message: 'Gmail disconnected. Reverted to Demo Mode.', isConnected: false });
-});
-
-apiRouter.post('/gmail/sync', async (_req: Request, res: Response) => {
-  try {
-    const { SyncService } = require('../services/google/SyncService');
-    const result = await SyncService.getInstance().syncAll();
-    res.json({
-      message: `Successfully synchronized ${result.gmailImported} university emails via Gmail read-only API`,
-      count: result.gmailImported,
-      syncResult: result
-    });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message || 'Gmail sync failed' });
-  }
-});
-
-// AI HEALTH / STATUS
+// ============================================================
+// 11. AI STATUS
+// ============================================================
 apiRouter.get('/ai/status', async (_req: Request, res: Response) => {
   try {
     const health = await ai.checkHealth();
@@ -442,12 +406,14 @@ apiRouter.get('/ai/status', async (_req: Request, res: Response) => {
   }
 });
 
-// 14. SETTINGS
+// ============================================================
+// 12. SETTINGS
+// ============================================================
 apiRouter.get('/settings', (_req: Request, res: Response) => {
   const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  const user = sqlite.getUser();
   res.json({
     student: db.getStudentProfile(),
-    mode: db.getMode(),
     aiProvider: ai.getActiveProviderName(),
     model: ai.getModelName(),
     allowedDomains: UniversityFilter.getAllowedDomains(),
@@ -462,18 +428,29 @@ apiRouter.get('/settings', (_req: Request, res: Response) => {
 });
 
 apiRouter.post('/settings', (req: Request, res: Response) => {
-  const { student, mode } = req.body;
-  if (student) db.updateStudentProfile(student);
-  if (mode === 'demo' || mode === 'gmail') db.setMode(mode);
+  const { student } = req.body;
+  if (student?.name || student?.email) {
+    const user = sqlite.getUser();
+    if (user) {
+      sqlite.upsertUser({
+        googleSubjectId: user.google_subject_id,
+        email: student.email || user.email,
+        name: student.name || user.name,
+        picture: user.picture,
+        program: student.program || user.program,
+      });
+    }
+  }
   res.json({ message: 'Settings updated successfully' });
 });
 
 // ============================================================
-// UNIQUE FEATURES API ROUTES
+// CAMPUS INTELLIGENCE ROUTES
+// (Consolidation of unique features into 5 areas)
 // ============================================================
 
-// 1. Feature 1: Campus Knowledge Graph
-apiRouter.get('/unique-features/knowledge-graph', (_req: Request, res: Response) => {
+// --- Campus Intelligence ---
+apiRouter.get('/intelligence/knowledge-graph', (_req: Request, res: Response) => {
   try {
     const graphData = KnowledgeGraphEngine.getInstance().getGraphData();
     res.json(graphData);
@@ -482,73 +459,7 @@ apiRouter.get('/unique-features/knowledge-graph', (_req: Request, res: Response)
   }
 });
 
-// 2. Feature 2: What Changed Radar
-apiRouter.get('/unique-features/changes', (_req: Request, res: Response) => {
-  try {
-    const changes = RelationshipEngine.getWhatChanged(db.getEmails());
-    res.json(changes);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to fetch change radar' });
-  }
-});
-
-// 3. Feature 3: Cross-System Information Conflict Detector
-apiRouter.get('/unique-features/conflicts', (_req: Request, res: Response) => {
-  try {
-    const conflicts = ConflictEngine.getInstance().detectConflicts();
-    res.json(conflicts);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to detect conflicts' });
-  }
-});
-
-// 4. Feature 4: Information Truth / Resolution View
-apiRouter.get('/unique-features/truth-resolution/:id', (req: Request, res: Response) => {
-  try {
-    const truth = UnifiedEventEngine.getInstance().getTruthResolution(req.params.id);
-    if (!truth) {
-      res.status(404).json({ error: 'Event truth resolution not found' });
-      return;
-    }
-    res.json(truth);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to fetch truth resolution' });
-  }
-});
-
-// 5. Feature 5: "Why This Matters to Me?"
-apiRouter.get('/unique-features/why-it-matters/:id', (req: Request, res: Response) => {
-  try {
-    const reasons = UnifiedEventEngine.getInstance().getWhyThisMatters(req.params.id);
-    res.json({ id: req.params.id, whyItMatters: reasons });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to fetch importance reasoning' });
-  }
-});
-
-// 6. Feature 6: Deadline Risk Detector
-apiRouter.get('/unique-features/deadline-risk', (_req: Request, res: Response) => {
-  try {
-    const risks = RiskEngine.getInstance().calculateDeadlineRisks();
-    res.json(risks);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to calculate deadline risks' });
-  }
-});
-
-// 7. Feature 7: AI Calendar Planner
-apiRouter.get('/unique-features/calendar-planner', (req: Request, res: Response) => {
-  try {
-    const date = typeof req.query.date === 'string' ? req.query.date : '2026-09-30';
-    const plan = CalendarPlannerEngine.getInstance().generatePlan(date);
-    res.json(plan);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to generate calendar plan' });
-  }
-});
-
-// 8 & 20. Feature 8 & 20: Information Hub & Unified Events
-apiRouter.get('/unique-features/unified-events', (_req: Request, res: Response) => {
+apiRouter.get('/intelligence/unified-events', (_req: Request, res: Response) => {
   try {
     const events = UnifiedEventEngine.getInstance().getUnifiedEvents();
     res.json(events);
@@ -557,7 +468,7 @@ apiRouter.get('/unique-features/unified-events', (_req: Request, res: Response) 
   }
 });
 
-apiRouter.get('/unique-features/unified-events/:id', (req: Request, res: Response) => {
+apiRouter.get('/intelligence/unified-events/:id', (req: Request, res: Response) => {
   try {
     const event = UnifiedEventEngine.getInstance().getUnifiedEventById(req.params.id);
     if (!event) {
@@ -570,8 +481,103 @@ apiRouter.get('/unique-features/unified-events/:id', (req: Request, res: Respons
   }
 });
 
-// 9. Feature 9: "What Did I Miss?" / Catch-Up
-apiRouter.get('/unique-features/catch-up', (req: Request, res: Response) => {
+apiRouter.get('/intelligence/search', (req: Request, res: Response) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.toLowerCase() : '';
+    if (!q) {
+      res.json({ emails: [], coursework: [], calendarEvents: [], actions: [], unifiedEvents: [], totalMatches: 0 });
+      return;
+    }
+
+    const emails = sqlite.getEmails({ search: q, limit: 20 });
+    const coursework = sqlite.getClassroomCoursework().filter(w =>
+      w.title.toLowerCase().includes(q) || w.courseName.toLowerCase().includes(q)
+    );
+    const calendarEvents = sqlite.getCalendarEvents().filter(c =>
+      c.title.toLowerCase().includes(q) ||
+      (c.location && c.location.toLowerCase().includes(q)) ||
+      (c.description && c.description.toLowerCase().includes(q))
+    );
+    const actions = sqlite.getActions().filter(a =>
+      a.title.toLowerCase().includes(q) || a.sourceEmailSubject.toLowerCase().includes(q)
+    );
+    const unifiedEvents = UnifiedEventEngine.getInstance().getUnifiedEvents().filter(u =>
+      u.title.toLowerCase().includes(q) ||
+      (u.location && u.location.toLowerCase().includes(q))
+    );
+    const totalMatches = emails.length + coursework.length + calendarEvents.length + actions.length + unifiedEvents.length;
+
+    res.json({ query: q, totalMatches, emails, coursework, calendarEvents, actions, unifiedEvents });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Search failed' });
+  }
+});
+
+// --- Change & Conflict Radar ---
+apiRouter.get('/intelligence/changes', (_req: Request, res: Response) => {
+  try {
+    const persisted = sqlite.getChanges(20);
+    const dynamic = RelationshipEngine.getWhatChanged(sqlite.getEmails());
+    const changes = persisted.length > 0 ? persisted : dynamic;
+    res.json(changes);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch change radar' });
+  }
+});
+
+apiRouter.get('/intelligence/conflicts', (_req: Request, res: Response) => {
+  try {
+    const conflicts = ConflictEngine.getInstance().detectConflicts();
+    res.json(conflicts);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to detect conflicts' });
+  }
+});
+
+apiRouter.get('/intelligence/truth-resolution/:id', (req: Request, res: Response) => {
+  try {
+    const truth = UnifiedEventEngine.getInstance().getTruthResolution(req.params.id);
+    if (!truth) {
+      res.status(404).json({ error: 'Event truth resolution not found' });
+      return;
+    }
+    res.json(truth);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch truth resolution' });
+  }
+});
+
+// --- Action & Planning ---
+apiRouter.get('/intelligence/deadline-risk', (_req: Request, res: Response) => {
+  try {
+    const risks = RiskEngine.getInstance().calculateDeadlineRisks();
+    res.json(risks);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to calculate deadline risks' });
+  }
+});
+
+apiRouter.get('/intelligence/attention-budget', (_req: Request, res: Response) => {
+  try {
+    const budget = AttentionBudgetEngine.getInstance().getAttentionBudget();
+    res.json(budget);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch attention budget' });
+  }
+});
+
+apiRouter.get('/intelligence/calendar-planner', (req: Request, res: Response) => {
+  try {
+    const date = typeof req.query.date === 'string' ? req.query.date : new Date().toISOString().split('T')[0];
+    const plan = CalendarPlannerEngine.getInstance().generatePlan(date);
+    res.json(plan);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to generate calendar plan' });
+  }
+});
+
+// --- Student Briefing ---
+apiRouter.get('/intelligence/catch-up', (req: Request, res: Response) => {
   try {
     const tf = (req.query.timeframe as any) || 'since_yesterday';
     const report = CatchUpEngine.getInstance().getCatchUpSummary(tf);
@@ -581,18 +587,7 @@ apiRouter.get('/unique-features/catch-up', (req: Request, res: Response) => {
   }
 });
 
-// 10. Feature 10: Campus Communication Health
-apiRouter.get('/unique-features/communication-health', (_req: Request, res: Response) => {
-  try {
-    const metrics = HealthEngine.getInstance().calculateHealthMetrics();
-    res.json(metrics);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to compute communication health' });
-  }
-});
-
-// 11. Feature 11: Opportunity Matcher
-apiRouter.get('/unique-features/opportunities', (_req: Request, res: Response) => {
+apiRouter.get('/intelligence/opportunities', (_req: Request, res: Response) => {
   try {
     const opportunities = OpportunityEngine.getInstance().getOpportunities();
     res.json(opportunities);
@@ -601,22 +596,30 @@ apiRouter.get('/unique-features/opportunities', (_req: Request, res: Response) =
   }
 });
 
-// 12. Feature 12: Attention Budget
-apiRouter.get('/unique-features/attention-budget', (_req: Request, res: Response) => {
+apiRouter.get('/intelligence/digests', (_req: Request, res: Response) => {
   try {
-    const budget = AttentionBudgetEngine.getInstance().getAttentionBudget();
-    res.json(budget);
+    const digests = DigestEngine.getInstance().getNotificationDigests();
+    res.json(digests);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to fetch attention budget' });
+    res.status(500).json({ error: err.message || 'Failed to fetch digests' });
   }
 });
 
-// 13. Feature 13: Explain AI Decision
-apiRouter.get('/unique-features/explain/:id', (req: Request, res: Response) => {
+// --- Trust & Privacy ---
+apiRouter.get('/intelligence/communication-health', (_req: Request, res: Response) => {
+  try {
+    const metrics = HealthEngine.getInstance().calculateHealthMetrics();
+    res.json(metrics);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to compute communication health' });
+  }
+});
+
+apiRouter.get('/intelligence/explain/:id', (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const email = db.getEmailById(id);
-    const action = db.getActions().find(a => a.id === id || a.emailId === id);
+    const email = sqlite.getEmailById(id);
+    const action = sqlite.getActions().find(a => a.id === id || a.emailId === id);
     const unified = UnifiedEventEngine.getInstance().getUnifiedEventById(id);
 
     const reasons: string[] = [];
@@ -628,10 +631,8 @@ apiRouter.get('/unique-features/explain/:id', (req: Request, res: Response) => {
       if (email.actionRequired) reasons.push(`Requires explicit action: "${email.actionText}"`);
       if (email.actionDeadline) reasons.push(`Hard deadline identified: ${email.actionDeadline}`);
       sources.push({
-        source: 'Gmail',
-        title: email.subject,
-        snippet: email.summary || email.body.slice(0, 100),
-        timestamp: email.timestamp
+        source: 'Gmail', title: email.subject,
+        snippet: email.summary || email.body.slice(0, 100), timestamp: email.timestamp
       });
     }
 
@@ -642,12 +643,7 @@ apiRouter.get('/unique-features/explain/:id', (req: Request, res: Response) => {
     if (unified) {
       reasons.push(...unified.whyItMatters);
       unified.sources.forEach(s => {
-        sources.push({
-          source: s.type.toUpperCase(),
-          title: s.title,
-          snippet: s.snippet || '',
-          timestamp: s.timestamp
-        });
+        sources.push({ source: s.type.toUpperCase(), title: s.title, snippet: s.snippet || '', timestamp: s.timestamp });
       });
     }
 
@@ -659,7 +655,7 @@ apiRouter.get('/unique-features/explain/:id', (req: Request, res: Response) => {
       itemId: id,
       itemTitle: email?.subject || action?.title || unified?.title || 'Decision Explanation',
       decisionType: 'PRIORITY',
-      outcome: email?.priority || action?.priority || 'CRITICAL',
+      outcome: email?.priority || action?.priority || 'MEDIUM',
       reasons,
       evidenceSources: sources
     });
@@ -668,22 +664,89 @@ apiRouter.get('/unique-features/explain/:id', (req: Request, res: Response) => {
   }
 });
 
-// 14. Feature 14: Campus Chaos Simulator
-apiRouter.post('/unique-features/chaos-simulate', (req: Request, res: Response) => {
+apiRouter.get('/intelligence/why-it-matters/:id', (req: Request, res: Response) => {
   try {
-    const { simulationType } = req.body;
-    if (!simulationType) {
-      res.status(400).json({ error: 'simulationType is required' });
-      return;
-    }
-    const result = ChaosSimulatorEngine.getInstance().simulateChaos(simulationType);
-    res.json(result);
+    const reasons = UnifiedEventEngine.getInstance().getWhyThisMatters(req.params.id);
+    res.json({ id: req.params.id, whyItMatters: reasons });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Simulation failed' });
+    res.status(500).json({ error: err.message || 'Failed to fetch importance reasoning' });
   }
 });
 
-// 16. Feature 16: "What Happens If I Ignore This?"
+// ============================================================
+// BACKWARD-COMPATIBLE ROUTES (kept for existing frontend)
+// ============================================================
+
+// Legacy unique-features routes redirect to intelligence routes
+apiRouter.get('/unique-features/knowledge-graph', (_req, res) => {
+  try { res.json(KnowledgeGraphEngine.getInstance().getGraphData()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/changes', (_req, res) => {
+  try { res.json(RelationshipEngine.getWhatChanged(sqlite.getEmails())); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/conflicts', (_req, res) => {
+  try { res.json(ConflictEngine.getInstance().detectConflicts()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/unified-events', (_req, res) => {
+  try { res.json(UnifiedEventEngine.getInstance().getUnifiedEvents()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/unified-events/:id', (req, res) => {
+  try {
+    const event = UnifiedEventEngine.getInstance().getUnifiedEventById(req.params.id);
+    event ? res.json(event) : res.status(404).json({ error: 'Not found' });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/deadline-risk', (_req, res) => {
+  try { res.json(RiskEngine.getInstance().calculateDeadlineRisks()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/attention-budget', (_req, res) => {
+  try { res.json(AttentionBudgetEngine.getInstance().getAttentionBudget()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/calendar-planner', (req, res) => {
+  try { res.json(CalendarPlannerEngine.getInstance().generatePlan(req.query.date as string || new Date().toISOString().split('T')[0])); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/catch-up', (req, res) => {
+  try { res.json(CatchUpEngine.getInstance().getCatchUpSummary((req.query.timeframe as any) || 'since_yesterday')); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/opportunities', (_req, res) => {
+  try { res.json(OpportunityEngine.getInstance().getOpportunities()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/communication-health', (_req, res) => {
+  try { res.json(HealthEngine.getInstance().calculateHealthMetrics()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/truth-resolution/:id', (req, res) => {
+  try {
+    const truth = UnifiedEventEngine.getInstance().getTruthResolution(req.params.id);
+    truth ? res.json(truth) : res.status(404).json({ error: 'Not found' });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/why-it-matters/:id', (req, res) => {
+  try { res.json({ id: req.params.id, whyItMatters: UnifiedEventEngine.getInstance().getWhyThisMatters(req.params.id) }); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/digests', (_req, res) => {
+  try { res.json(DigestEngine.getInstance().getNotificationDigests()); }
+  catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+apiRouter.get('/unique-features/search', (req, res) => {
+  // Redirect to intelligence search
+  req.url = '/intelligence/search' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+  (apiRouter as any).handle(req, res, () => {});
+});
+apiRouter.get('/unique-features/explain/:id', (req, res) => {
+  req.url = `/intelligence/explain/${req.params.id}`;
+  (apiRouter as any).handle(req, res, () => {});
+});
 apiRouter.get('/unique-features/consequence/:actionId', (req: Request, res: Response) => {
   try {
     const analysis = UnifiedEventEngine.getInstance().getConsequence(req.params.actionId);
@@ -693,70 +756,29 @@ apiRouter.get('/unique-features/consequence/:actionId', (req: Request, res: Resp
   }
 });
 
-// 21. Feature 21: Campus Intelligence Global Search
-apiRouter.get('/unique-features/search', (req: Request, res: Response) => {
-  try {
-    const q = typeof req.query.q === 'string' ? req.query.q.toLowerCase() : '';
-    if (!q) {
-      res.json({ emails: [], coursework: [], calendarEvents: [], actions: [], unifiedEvents: [], totalMatches: 0 });
-      return;
-    }
-
-    const emails = db.getEmails().filter(e =>
-      e.subject.toLowerCase().includes(q) ||
-      e.body.toLowerCase().includes(q) ||
-      e.senderName.toLowerCase().includes(q) ||
-      (e.location && e.location.toLowerCase().includes(q)) ||
-      (e.actionText && e.actionText.toLowerCase().includes(q))
-    );
-
-    const coursework = db.getClassroomCoursework().filter(w =>
-      w.title.toLowerCase().includes(q) ||
-      w.courseName.toLowerCase().includes(q)
-    );
-
-    const calendarEvents = db.getCalendarEvents().filter(c =>
-      c.title.toLowerCase().includes(q) ||
-      (c.location && c.location.toLowerCase().includes(q)) ||
-      (c.description && c.description.toLowerCase().includes(q))
-    );
-
-    const actions = db.getActions().filter(a =>
-      a.title.toLowerCase().includes(q) ||
-      a.sourceEmailSubject.toLowerCase().includes(q) ||
-      (a.location && a.location.toLowerCase().includes(q))
-    );
-
-    const unifiedEvents = UnifiedEventEngine.getInstance().getUnifiedEvents().filter(u =>
-      u.title.toLowerCase().includes(q) ||
-      (u.location && u.location.toLowerCase().includes(q)) ||
-      u.category.toLowerCase().includes(q)
-    );
-
-    const totalMatches = emails.length + coursework.length + calendarEvents.length + actions.length + unifiedEvents.length;
-
-    res.json({
-      query: q,
-      totalMatches,
-      emails,
-      coursework,
-      calendarEvents,
-      actions,
-      unifiedEvents
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Search failed' });
-  }
+// Legacy Gmail routes
+apiRouter.get('/gmail/auth-url', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  res.json({ authUrl: GoogleOAuthService.getInstance().getAuthUrl() });
 });
 
-// 24. Feature 24: Smart Notification Digest
-apiRouter.get('/unique-features/digests', (_req: Request, res: Response) => {
-  try {
-    const digests = DigestEngine.getInstance().getNotificationDigests();
-    res.json(digests);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to fetch digests' });
-  }
+apiRouter.get('/gmail/status', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  const status = GoogleOAuthService.getInstance().getStatus();
+  res.json({ isConnected: status.connected, userEmail: status.userEmail });
 });
 
+apiRouter.post('/gmail/disconnect', (_req: Request, res: Response) => {
+  const { GoogleOAuthService } = require('../services/google/GoogleOAuthService');
+  GoogleOAuthService.getInstance().disconnect();
+  res.json({ message: 'Gmail disconnected.', isConnected: false });
+});
 
+apiRouter.post('/gmail/sync', async (_req: Request, res: Response) => {
+  try {
+    const result = await SyncManager.getInstance().syncAll();
+    res.json({ message: `Synchronized ${result.gmailImported} university emails`, count: result.gmailImported, syncResult: result });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Gmail sync failed' });
+  }
+});

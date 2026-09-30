@@ -23,9 +23,11 @@ token.json
 
 # Database
 *.sqlite
+*.sqlite*
 *.sqlite3
 *.db
 *.db-journal
+data/
 
 # Logs
 logs/
@@ -43,3 +45,4 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+.vercel

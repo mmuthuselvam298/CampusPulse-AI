@@ -1,19 +1,30 @@
-import React from 'react';
-import { Activity, ShieldAlert, Sparkles, AlertTriangle, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const CampusPulseVisualizer: React.FC = () => {
-  const { dashboard, simulateEmail } = useApp();
+  const { dashboard, triggerSync } = useApp();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const metrics = dashboard?.metrics || {
-    totalAnalyzed: 108,
-    requireAttention: 5,
+    totalAnalyzed: 50,
+    requireAttention: 4,
     criticalCount: 1,
     highPriorityCount: 4,
     upcomingDeadlinesCount: 4
   };
 
+  const studentName = dashboard?.student?.name ? dashboard.student.name.split(' ')[0] : 'Student';
   const waveform = dashboard?.campusPulse?.waveform || [35, 60, 40, 85, 95, 75, 50, 65, 90, 80, 55, 45, 70, 85, 40];
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await triggerSync();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-xl border border-indigo-800/50">
@@ -27,26 +38,26 @@ export const CampusPulseVisualizer: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              SRM AP CAMPUS PULSE · LIVE
+              CAMPUSPULSE AI · ACTIVE LAYER
             </span>
             <span className="text-xs text-slate-300">
-              SRM University-AP, Andhra Pradesh · Neerukonda Campus
+              {dashboard?.student?.university || 'SRM University-AP'}
             </span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-heading">
-            Good morning, Muthu 👋
+            Good morning, {studentName} 👋
           </h2>
 
           <p className="text-sm text-slate-300 leading-relaxed">
-            Here's what is happening at SRM AP today. CampusPulse AI synchronized your communications across departmental channels into clear, prioritized actions.
+            CampusPulse unified your communications across Gmail, Google Classroom, and Google Calendar into one intelligent student layer.
           </p>
 
           {/* Quick Metrics Bar */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
               <span className="text-xs font-bold text-cyan-400">{metrics.totalAnalyzed}</span>
-              <span className="text-xs text-slate-300">Messages Analyzed</span>
+              <span className="text-xs text-slate-300">Communications Unified</span>
             </div>
 
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/20 backdrop-blur-sm border border-red-500/30">
@@ -59,19 +70,19 @@ export const CampusPulseVisualizer: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/20 backdrop-blur-sm border border-indigo-500/30">
-              <span className="text-xs font-bold text-indigo-300">{metrics.requireAttention} Need Action</span>
+              <span className="text-xs font-bold text-indigo-300">{metrics.requireAttention} Pending Actions</span>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Dynamic Audio/Signal Waveform Visualizer */}
+        {/* Right Column: Dynamic Signal Waveform Visualizer */}
         <div className="flex flex-col items-start lg:items-end gap-3 shrink-0">
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/15 w-full sm:w-auto">
             <div className="flex items-center justify-between gap-4 mb-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-cyan-400 animate-pulse" />
                 <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                  Campus Activity Wave
+                  Campus Signal Stream
                 </span>
               </div>
               <span className="text-[11px] font-mono text-cyan-300">
@@ -100,13 +111,14 @@ export const CampusPulseVisualizer: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Demo Simulator CTA */}
+          {/* Sync Trigger CTA */}
           <button
-            onClick={() => simulateEmail()}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/25 transition-all hover:scale-102 cursor-pointer w-full sm:w-auto justify-center"
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/25 transition-all hover:scale-102 cursor-pointer w-full sm:w-auto justify-center disabled:opacity-50"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Simulate Incoming Email</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Synchronizing...' : 'Sync Google Services'}</span>
           </button>
         </div>
       </div>

@@ -4,44 +4,25 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { EmailDetailModal } from './components/email/EmailDetailModal';
 import { AIChatDrawer } from './components/assistant/AIChatDrawer';
-import { DemoControlCenterModal } from './components/demo/DemoControlCenterModal';
 import { ToastNotification } from './components/notifications/ToastNotification';
 
-// Pages
+// Core Pages
 import { DashboardPage } from './pages/DashboardPage';
 import { InboxPage } from './pages/InboxPage';
 import { ActionsPage } from './pages/ActionsPage';
-import { RelationshipsPage } from './pages/RelationshipsPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { ClassroomPage } from './pages/ClassroomPage';
 import { ConnectionsPage } from './pages/ConnectionsPage';
 import { CampusMapPage } from './pages/CampusMapPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
-import { AssistantPage } from './pages/AssistantPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AssistantPage } from './pages/AssistantPage';
 
-// Unique Features Pages
-import { UniqueLandingPage } from './pages/unique/UniqueLandingPage';
-import { KnowledgeGraphPage } from './pages/unique/KnowledgeGraphPage';
-import { ChangesRadarPage } from './pages/unique/ChangesRadarPage';
-import { ConflictDetectorPage } from './pages/unique/ConflictDetectorPage';
-import { TruthResolutionPage } from './pages/unique/TruthResolutionPage';
-import { WhyItMattersPage } from './pages/unique/WhyItMattersPage';
-import { DeadlineRiskPage } from './pages/unique/DeadlineRiskPage';
-import { CalendarPlannerPage } from './pages/unique/CalendarPlannerPage';
-import { InformationHubPage } from './pages/unique/InformationHubPage';
-import { CatchUpPage } from './pages/unique/CatchUpPage';
-import { CommunicationHealthPage } from './pages/unique/CommunicationHealthPage';
-import { OpportunityMatcherPage } from './pages/unique/OpportunityMatcherPage';
-import { AttentionBudgetPage } from './pages/unique/AttentionBudgetPage';
-import { ExplainDecisionPage } from './pages/unique/ExplainDecisionPage';
-import { ChaosSimulatorPage } from './pages/unique/ChaosSimulatorPage';
-import { EventNavigatorPage } from './pages/unique/EventNavigatorPage';
-import { PrivacyCenterPage } from './pages/unique/PrivacyCenterPage';
-import { TimelinePage } from './pages/unique/TimelinePage';
-import { SourceComparisonPage } from './pages/unique/SourceComparisonPage';
-import { DigestPage } from './pages/unique/DigestPage';
-import { CommandCenterPage } from './pages/unique/CommandCenterPage';
+// Five Campus Intelligence Areas
+import { CampusIntelligencePage } from './pages/CampusIntelligencePage';
+import { ChangeConflictRadarPage } from './pages/ChangeConflictRadarPage';
+import { ActionPlanningPage } from './pages/ActionPlanningPage';
+import { StudentBriefingPage } from './pages/StudentBriefingPage';
+import { TrustPrivacyPage } from './pages/TrustPrivacyPage';
 
 // Mobile bottom nav icons
 import { LayoutDashboard, Inbox, CheckSquare, Calendar, Sparkles } from 'lucide-react';
@@ -56,75 +37,65 @@ const MainLayout: React.FC = () => {
         return <DashboardPage />;
       case 'inbox':
         return <InboxPage />;
-      case 'actions':
-        return <ActionsPage />;
-      case 'relationships':
-        return <RelationshipsPage />;
-      case 'classroom':
-        return <ClassroomPage />;
       case 'calendar':
       case 'deadlines':
         return <CalendarPage />;
-      case 'connections':
-        return <ConnectionsPage />;
+      case 'classroom':
+        return <ClassroomPage />;
+      case 'actions':
+        return <ActionsPage />;
       case 'map':
         return <CampusMapPage />;
-      case 'analytics':
-        return <AnalyticsPage />;
-      case 'assistant':
-        return <AssistantPage />;
+      case 'connections':
+        return <ConnectionsPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'assistant':
+        return <AssistantPage />;
 
-      // Unique Features Routes
-      case 'unique-features':
-        return <UniqueLandingPage />;
-      case 'command-center':
-        return <CommandCenterPage />;
+      // Five Campus Intelligence Areas
+      case 'campus-intelligence':
       case 'knowledge-graph':
-        return <KnowledgeGraphPage />;
-      case 'changes-radar':
-        return <ChangesRadarPage />;
-      case 'conflicts':
-        return <ConflictDetectorPage />;
-      case 'truth-resolution':
-        return <TruthResolutionPage />;
-      case 'why-it-matters':
-        return <WhyItMattersPage />;
-      case 'deadline-risk':
-        return <DeadlineRiskPage />;
-      case 'calendar-planner':
-        return <CalendarPlannerPage />;
       case 'information-hub':
-        return <InformationHubPage />;
-      case 'catch-up':
-        return <CatchUpPage />;
-      case 'communication-health':
-        return <CommunicationHealthPage />;
-      case 'opportunities':
-        return <OpportunityMatcherPage />;
-      case 'attention-budget':
-        return <AttentionBudgetPage />;
-      case 'explain-decision':
-        return <ExplainDecisionPage />;
-      case 'chaos-simulator':
-        return <ChaosSimulatorPage />;
-      case 'event-navigator':
-        return <EventNavigatorPage />;
-      case 'privacy':
-        return <PrivacyCenterPage />;
       case 'timeline':
-        return <TimelinePage />;
+      case 'unique-features':
+      case 'command-center':
+        return <CampusIntelligencePage />;
+
+      case 'change-conflict':
+      case 'changes-radar':
+      case 'conflicts':
+      case 'truth-resolution':
+      case 'relationships':
       case 'compare-sources':
-        return <SourceComparisonPage />;
+      case 'chaos-simulator':
+        return <ChangeConflictRadarPage />;
+
+      case 'action-planning':
+      case 'deadline-risk':
+      case 'attention-budget':
+      case 'calendar-planner':
+      case 'event-navigator':
+        return <ActionPlanningPage />;
+
+      case 'student-briefing':
+      case 'catch-up':
+      case 'opportunities':
       case 'digest':
-        return <DigestPage />;
+        return <StudentBriefingPage />;
+
+      case 'trust-privacy':
+      case 'privacy':
+      case 'communication-health':
+      case 'explain-decision':
+      case 'why-it-matters':
+      case 'analytics':
+        return <TrustPrivacyPage />;
 
       default:
         return <DashboardPage />;
     }
   };
-
 
   return (
     <div className="flex h-screen bg-[#F8FAFF] overflow-hidden select-none font-sans">
@@ -142,80 +113,58 @@ const MainLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* Floating AI Assistant Trigger Bubble (Bottom-right) */}
+      {/* Slide-over Email Viewer Modal */}
+      <EmailDetailModal />
+
+      {/* Persistent AI Assistant Drawer */}
+      <AIChatDrawer />
+
+      {/* Toast System */}
+      <ToastNotification />
+
+      {/* Mobile Floating Action Button (FAB) for AI Assistant */}
       <button
         onClick={() => setIsAssistantOpen(true)}
-        className="fixed bottom-6 right-6 z-40 p-3.5 bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl shadow-xl shadow-indigo-500/25 hover:scale-105 transition-all cursor-pointer flex items-center gap-2 group"
-        title="Open CampusPulse AI Assistant"
+        className="md:hidden fixed bottom-18 right-4 w-12 h-12 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 z-40 active:scale-95 transition-transform cursor-pointer"
+        aria-label="Open AI Assistant"
       >
         <Sparkles className="w-5 h-5 animate-pulse" />
-        <span className="text-xs font-bold hidden md:inline">Ask CampusPulse</span>
       </button>
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex items-center justify-around shadow-lg">
-        <button
-          onClick={() => setCurrentTab('dashboard')}
-          className={`flex flex-col items-center gap-0.5 p-1 ${
-            currentTab === 'dashboard' ? 'text-indigo-600 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <LayoutDashboard className="w-4 h-4" />
-          <span className="text-[10px]">Home</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('inbox')}
-          className={`flex flex-col items-center gap-0.5 p-1 ${
-            currentTab === 'inbox' ? 'text-indigo-600 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Inbox className="w-4 h-4" />
-          <span className="text-[10px]">Inbox</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('actions')}
-          className={`flex flex-col items-center gap-0.5 p-1 ${
-            currentTab === 'actions' ? 'text-indigo-600 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <CheckSquare className="w-4 h-4" />
-          <span className="text-[10px]">Actions</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentTab('calendar')}
-          className={`flex flex-col items-center gap-0.5 p-1 ${
-            currentTab === 'calendar' ? 'text-indigo-600 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Calendar className="w-4 h-4" />
-          <span className="text-[10px]">Calendar</span>
-        </button>
-
-        <button
-          onClick={() => setIsAssistantOpen(true)}
-          className="flex flex-col items-center gap-0.5 p-1 text-purple-600 font-bold"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span className="text-[10px]">Ask AI</span>
-        </button>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-[#E7EAF3] flex items-center justify-around px-2 z-40">
+        {[
+          { id: 'dashboard' as const, label: 'Home', icon: LayoutDashboard },
+          { id: 'inbox' as const, label: 'Inbox', icon: Inbox },
+          { id: 'campus-intelligence' as const, label: 'Intelligence', icon: Sparkles },
+          { id: 'calendar' as const, label: 'Calendar', icon: Calendar },
+          { id: 'actions' as const, label: 'Actions', icon: CheckSquare }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = currentTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setCurrentTab(tab.id)}
+              className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer ${
+                isActive ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] mt-0.5">{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
-
-      {/* Slide-in & Modal Overlays */}
-      <EmailDetailModal />
-      <AIChatDrawer />
-      <DemoControlCenterModal />
-      <ToastNotification />
     </div>
   );
 };
 
-export default function App() {
+export const App: React.FC = () => {
   return (
     <AppProvider>
       <MainLayout />
     </AppProvider>
   );
-}
+};
+export default App;

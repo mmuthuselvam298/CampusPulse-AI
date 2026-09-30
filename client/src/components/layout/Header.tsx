@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Sparkles, Plus, CheckCircle, ShieldCheck, User } from 'lucide-react';
+import { Search, Bell, Sparkles, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const Header: React.FC = () => {
@@ -9,14 +9,14 @@ export const Header: React.FC = () => {
     setSearchQuery,
     setCurrentTab,
     openEmailById,
-    simulateEmail,
-    setIsDemoControlOpen,
     setIsAssistantOpen,
-    actions
+    actions,
+    triggerSync
   } = useApp();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   // Close notifications on click outside
@@ -43,8 +43,17 @@ export const Header: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const handleSyncClick = async () => {
+    setIsSyncing(true);
+    try {
+      await triggerSync();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const urgentCount = dashboard?.metrics?.requireAttention || 0;
-  const criticalCount = dashboard?.metrics?.criticalCount || 0;
+  const student = dashboard?.student;
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-white/90 backdrop-blur-md border-b border-[#E7EAF3] shadow-xs">
@@ -93,31 +102,22 @@ export const Header: React.FC = () => {
 
       {/* Right Action Icons & Badges */}
       <div className="flex items-center gap-3 ml-4">
-        {/* Quick Simulate Live Email Button */}
+        {/* Real Live Google Services Sync Button */}
         <button
-          onClick={() => simulateEmail()}
-          title="Simulate incoming SRM AP university email for live demonstration"
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all shadow-xs hover:scale-102 cursor-pointer"
+          onClick={handleSyncClick}
+          disabled={isSyncing}
+          title="Synchronize live university communications with Google services"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all shadow-xs hover:scale-102 cursor-pointer disabled:opacity-50"
         >
-          <Plus className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Simulate Email</span>
-        </button>
-
-        {/* Mode Selector Badge */}
-        <button
-          onClick={() => setIsDemoControlOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
-          title="Click to open Demo Control Center"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>SRM AP DEMO</span>
-          <span className="text-[10px] text-emerald-600 bg-white/70 px-1 rounded">SIH PS02</span>
+          <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
         </button>
 
         {/* Floating AI Assistant trigger button */}
         <button
           onClick={() => setIsAssistantOpen(true)}
-          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all cursor-pointer shadow-xs"
           title="Open CampusPulse AI Assistant"
         >
           <Sparkles className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
@@ -187,11 +187,11 @@ export const Header: React.FC = () => {
         {/* User Profile Avatar */}
         <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shadow-xs">
-            M
+            {student?.name ? student.name[0] : 'S'}
           </div>
           <div className="hidden lg:block text-left">
-            <p className="text-xs font-semibold text-slate-800 leading-tight">Muthu</p>
-            <p className="text-[10px] text-slate-500 leading-tight">CSE · AI & ML</p>
+            <p className="text-xs font-semibold text-slate-800 leading-tight">{student?.name || 'Student'}</p>
+            <p className="text-[10px] text-slate-500 leading-tight">{student?.program || 'SRM University-AP'}</p>
           </div>
         </div>
       </div>

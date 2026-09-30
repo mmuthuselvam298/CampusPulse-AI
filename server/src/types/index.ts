@@ -68,6 +68,8 @@ export interface EmailData {
   relatedCalendarEventId?: string;
   isCalendarAdded?: boolean;
   calendarEventId?: string;
+  aiAnalyzed?: boolean;
+  labels?: string[];
 }
 
 export interface ActionItem {

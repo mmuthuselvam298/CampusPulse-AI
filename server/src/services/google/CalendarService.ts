@@ -4,12 +4,9 @@ import { GoogleCalendarEvent, CalendarConflictCheckResult } from '../../types';
 
 export class CalendarService {
   private static instance: CalendarService;
-  private localEvents: GoogleCalendarEvent[] = [];
   private sourceToEventMap: Map<string, string> = new Map(); // sourceId -> calendarEventId
 
-  private constructor() {
-    this.seedDemoCalendarEvents();
-  }
+  private constructor() {}
 
   public static getInstance(): CalendarService {
     if (!CalendarService.instance) {
@@ -18,62 +15,7 @@ export class CalendarService {
     return CalendarService.instance;
   }
 
-  private seedDemoCalendarEvents(): void {
-    this.localEvents = [
-      {
-        id: 'cal-event-1',
-        title: 'CSE 204: Algorithms Laboratory & Theory',
-        description: 'Design and Analysis of Algorithms mandatory laboratory session.',
-        startTime: '2026-09-30T09:00:00.000Z',
-        endTime: '2026-09-30T11:00:00.000Z',
-        location: 'S202, SR Block',
-        isAllDay: false,
-        source: 'google'
-      },
-      {
-        id: 'cal-event-2',
-        title: 'CEL Mentor Review — Team Pitching',
-        description: 'In-person mentor review with Rakesh Sir at Directorate of Entrepreneurship.',
-        startTime: '2026-09-29T15:50:00.000Z',
-        endTime: '2026-09-29T16:30:00.000Z',
-        location: 'Directorate of Entrepreneurship, Level 2',
-        isAllDay: false,
-        source: 'google'
-      },
-      {
-        id: 'cal-event-3',
-        title: 'CSE Expert Talk: Securing Autonomous AI Platforms',
-        description: 'Guest talk on AI Governance, threat modeling, and OWASP Agentic Top 10.',
-        startTime: '2026-09-26T11:00:00.000Z',
-        endTime: '2026-09-26T12:30:00.000Z',
-        location: 'Online (Zoom / University Stream)',
-        isAllDay: false,
-        source: 'google'
-      },
-      {
-        id: 'cal-event-4',
-        title: 'Terrathon 2026 — Sustainability Hackathon',
-        description: 'Green computing & sustainable systems hackathon kickoff.',
-        startTime: '2026-09-26T10:00:00.000Z',
-        endTime: '2026-09-26T11:00:00.000Z',
-        location: 'APJ Abdul Kalam Auditorium',
-        isAllDay: false,
-        source: 'google'
-      },
-      {
-        id: 'cal-event-5',
-        title: 'Hands-On Robotics Workshop (Techfest IIT Bombay)',
-        description: 'Autonomous Kinematics and ROS integration session. Microcontrollers distributed.',
-        startTime: '2026-09-30T11:00:00.000Z',
-        endTime: '2026-09-30T16:00:00.000Z',
-        location: 'Room S204, SR Block',
-        isAllDay: false,
-        source: 'google',
-        sourceType: 'google',
-        sourceId: 'email-srm-002'
-      }
-    ];
-  }
+
 
   /**
    * Retrieves upcoming events from Google Calendar API or local state
@@ -82,7 +24,10 @@ export class CalendarService {
     const oauth = GoogleOAuthService.getInstance();
 
     if (!oauth.isAuthConnected()) {
-      return this.localEvents;
+      // Return persisted events from SQLite
+      const { SQLiteService } = require('../../db/SQLiteService');
+      const sqlite = SQLiteService.getInstance();
+      return sqlite.getCalendarEvents({ timeMin, timeMax });
     }
 
     try {
@@ -112,12 +57,19 @@ export class CalendarService {
         sourceId: item.extendedProperties?.private?.sourceId
       }));
 
-      // Merge with any local mock events for comprehensive demonstration
-      this.localEvents = events;
+      // Persist to SQLite
+      const { SQLiteService } = require('../../db/SQLiteService');
+      const sqliteDb = SQLiteService.getInstance();
+      for (const event of events) {
+        sqliteDb.upsertCalendarEvent(event);
+      }
+
       return events;
     } catch (err) {
-      console.warn('Google Calendar fetch failed, using local events:', err);
-      return this.localEvents;
+      console.warn('Google Calendar fetch failed, using persisted events:', err);
+      const { SQLiteService } = require('../../db/SQLiteService');
+      const sqliteDb = SQLiteService.getInstance();
+      return sqliteDb.getCalendarEvents({ timeMin, timeMax });
     }
   }
 
@@ -242,7 +194,10 @@ export class CalendarService {
         if (params.sourceId) {
           this.sourceToEventMap.set(params.sourceId, createdEvent.id);
         }
-        this.localEvents.push(createdEvent);
+
+        // Persist to SQLite
+        const { SQLiteService } = require('../../db/SQLiteService');
+        SQLiteService.getInstance().upsertCalendarEvent(createdEvent);
 
         return {
           success: true,
@@ -254,7 +209,7 @@ export class CalendarService {
       }
     }
 
-    // Demo Mode or local fallback creation
+    // Local fallback creation (persisted in SQLite)
     const localEvent: GoogleCalendarEvent = {
       id: `local-cal-${Date.now()}`,
       title: params.title,
@@ -270,7 +225,10 @@ export class CalendarService {
     if (params.sourceId) {
       this.sourceToEventMap.set(params.sourceId, localEvent.id);
     }
-    this.localEvents.unshift(localEvent);
+
+    // Persist to SQLite
+    const { SQLiteService: SQLiteSvc } = require('../../db/SQLiteService');
+    SQLiteSvc.getInstance().upsertCalendarEvent(localEvent);
 
     return {
       success: true,
@@ -297,10 +255,12 @@ export class CalendarService {
       }
     }
 
-    const index = this.localEvents.findIndex(e => e.id === eventId);
-    if (index !== -1) {
-      this.localEvents.splice(index, 1);
-      return true;
+    // Remove from SQLite
+    try {
+      const { SQLiteService: SQLiteSvc2 } = require('../../db/SQLiteService');
+      SQLiteSvc2.getInstance().getDatabase().prepare('DELETE FROM calendar_events WHERE id = ?').run(eventId);
+    } catch (delErr) {
+      console.warn('Failed to remove event from local database:', delErr);
     }
     return true;
   }

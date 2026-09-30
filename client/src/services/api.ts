@@ -448,54 +448,28 @@ export class ApiService {
   }
 
 
-  public static async simulateEmail(scenario?: string): Promise<{ email: EmailData }> {
+  public static async triggerSync(): Promise<{ success: boolean; message: string; gmailImported?: number; classroomImported?: number; calendarImported?: number }> {
     try {
-      const res = await fetch(`${API_BASE}/demo/simulate-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario })
-      });
+      const res = await fetch(`${API_BASE}/google/sync`, { method: 'POST' });
       if (res.ok) {
         return await res.json();
       }
     } catch (err) {
-      console.warn('Backend unavailable for simulate-email:', err);
+      console.warn('Backend sync failed:', err);
     }
-
-    const simulated: EmailData = {
-      id: `sim-local-${Date.now()}`,
-      sender: "hod.cse@srmap.edu.in",
-      senderName: "HOD CSE (SEAS)",
-      recipient: "demo.student@srmap.edu.in",
-      subject: "URGENT: Tomorrow's CSE 204 Exam Shifted to S202, SR Block",
-      body: "Emergency venue change due to technical lab setup. Report to S202, SR Block by 09:30 AM with physical Hall Ticket.",
-      timestamp: new Date().toISOString(),
-      dateFormatted: "Just Now",
-      category: "EXAMS",
-      priority: "CRITICAL",
-      priorityScore: 99,
-      priorityReason: "Emergency examination venue relocation right before morning slot.",
-      categoryReason: "Critical examination administration logistics.",
-      summary: "Tomorrow's CSE 204 exam shifted to S202 SR Block. Report by 09:30 AM.",
-      actionRequired: true,
-      actionText: "Report to S202, SR Block by 09:30 AM with Hall Ticket",
-      actionDeadline: "Tomorrow, 09:30 AM",
-      location: "S202, SR Block",
-      urgency: "CRITICAL",
-      tags: ["urgent", "exam", "srmap"],
-      isRead: false,
-      source: "demo"
-    };
-
-    return { email: simulated };
+    return { success: false, message: 'Google sync failed or offline' };
   }
 
-  public static async resetDemo(): Promise<void> {
+  public static async getSyncStatus(): Promise<{ isSyncing: boolean; services: any[] }> {
     try {
-      await fetch(`${API_BASE}/demo/reset`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/sync/status`);
+      if (res.ok) {
+        return await res.json();
+      }
     } catch (err) {
-      console.warn('Failed to reset demo on server:', err);
+      console.warn('Failed to fetch sync status:', err);
     }
+    return { isSyncing: false, services: [] };
   }
 
   public static async getRelationships(): Promise<{ clusters: any[]; whatChanged: ScheduleChangeItem[] }> {
@@ -808,5 +782,7 @@ export class ApiService {
     if (!res.ok) throw new Error('Failed to fetch notification digests');
     return await res.json();
   }
+
+  public static searchIntelligence = ApiService.searchCampus;
 }
 

@@ -7,14 +7,12 @@ import {
   User,
   Building,
   CheckCircle,
-  AlertCircle,
-  ExternalLink,
-  Trash2
+  RefreshCw
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const SettingsPage: React.FC = () => {
-  const { dashboard, addToast, resetDemo } = useApp();
+  const { dashboard, addToast, triggerSync } = useApp();
   const [allowedDomains, setAllowedDomains] = useState('srmap.edu.in, srmist.edu.in');
   const [studentName, setStudentName] = useState(dashboard?.student?.name || 'Muthu');
   const [university, setUniversity] = useState(dashboard?.student?.university || 'SRM University-AP, Andhra Pradesh');
@@ -152,7 +150,7 @@ export const SettingsPage: React.FC = () => {
               </h3>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-              DEMO MODE ACTIVE
+              PERSISTENT SQLITE ACTIVE
             </span>
           </div>
 
@@ -161,20 +159,27 @@ export const SettingsPage: React.FC = () => {
               Zero-Modification Privacy Guarantee
             </h4>
             <p className="text-slate-600 leading-relaxed">
-              When Live Gmail mode is connected, CampusPulse uses strictly read-only authorization (<code className="font-mono text-indigo-700 bg-white px-1 rounded">gmail.readonly</code>). CampusPulse AI will never compose, send, modify, delete, or forward messages.
+              When Google services are connected, CampusPulse uses strictly read-only authorization (<code className="font-mono text-indigo-700 bg-white px-1 rounded">gmail.readonly</code>, <code className="font-mono text-indigo-700 bg-white px-1 rounded">classroom.courses.readonly</code>). CampusPulse AI will never compose, send, modify, delete, or forward messages.
             </p>
           </div>
         </div>
 
-        {/* Save & Reset Actions */}
+        {/* Save & Sync Actions */}
         <div className="flex items-center justify-between pt-2">
           <button
             type="button"
-            onClick={resetDemo}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all cursor-pointer"
+            onClick={async () => {
+              await triggerSync();
+              addToast({
+                title: "🔄 Synchronized",
+                message: "Local university database synchronized with live services.",
+                priority: "LOW"
+              });
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Reset Demo Database</span>
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Sync Google Services</span>
           </button>
 
           <button

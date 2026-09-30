@@ -26,7 +26,14 @@ export class ClassroomService {
     const oauthService = GoogleOAuthService.getInstance();
 
     if (!oauthService.isAuthConnected()) {
-      return this.getDemoClassroomData();
+      // Return whatever is persisted in SQLite, or empty arrays if nothing exists
+      const { SQLiteService } = require('../../db/SQLiteService');
+      const sqlite = SQLiteService.getInstance();
+      return {
+        courses: sqlite.getClassroomCourses(),
+        coursework: sqlite.getClassroomCoursework(),
+        announcements: sqlite.getClassroomAnnouncements()
+      };
     }
 
     try {
@@ -139,7 +146,14 @@ export class ClassroomService {
       return { courses, coursework, announcements };
     } catch (err) {
       console.error('Classroom API synchronization failed:', err);
-      return this.getDemoClassroomData();
+      // Return persisted data from database, never fake data
+      const { SQLiteService } = require('../../db/SQLiteService');
+      const sqlite = SQLiteService.getInstance();
+      return {
+        courses: sqlite.getClassroomCourses(),
+        coursework: sqlite.getClassroomCoursework(),
+        announcements: sqlite.getClassroomAnnouncements()
+      };
     }
   }
 

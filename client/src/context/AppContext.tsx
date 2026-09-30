@@ -5,17 +5,23 @@ import { ApiService } from '../services/api';
 export type NavTab = 
   | 'dashboard'
   | 'inbox'
-  | 'actions'
-  | 'deadlines'
   | 'calendar'
   | 'classroom'
-  | 'connections'
+  | 'actions'
   | 'map'
+  | 'connections'
+  // Five Campus Intelligence Areas
+  | 'campus-intelligence'
+  | 'change-conflict'
+  | 'action-planning'
+  | 'student-briefing'
+  | 'trust-privacy'
+  // Other & Aliases
+  | 'settings'
+  | 'assistant'
+  | 'deadlines'
   | 'analytics'
   | 'relationships'
-  | 'assistant'
-  | 'settings'
-  // Unique Features
   | 'unique-features'
   | 'knowledge-graph'
   | 'changes-radar'
@@ -30,13 +36,13 @@ export type NavTab =
   | 'opportunities'
   | 'attention-budget'
   | 'explain-decision'
-  | 'chaos-simulator'
   | 'event-navigator'
   | 'privacy'
   | 'timeline'
   | 'compare-sources'
   | 'digest'
-  | 'command-center';
+  | 'command-center'
+  | 'chaos-simulator';
 
 
 
@@ -57,16 +63,13 @@ interface AppContextType {
   toasts: ToastMessage[];
   addToast: (toast: Omit<ToastMessage, 'id' | 'time'>) => void;
   removeToast: (id: string) => void;
-  isDemoControlOpen: boolean;
-  setIsDemoControlOpen: (open: boolean) => void;
   isAssistantOpen: boolean;
   setIsAssistantOpen: (open: boolean) => void;
   isLoading: boolean;
   refreshData: () => Promise<void>;
   toggleAction: (id: string) => Promise<void>;
-  simulateEmail: (scenario?: string) => Promise<void>;
-  resetDemo: () => Promise<void>;
   openEmailById: (id: string) => Promise<void>;
+  triggerSync: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -81,7 +84,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [isDemoControlOpen, setIsDemoControlOpen] = useState<boolean>(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -144,28 +146,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const simulateEmail = async (scenario?: string) => {
-    const res = await ApiService.simulateEmail(scenario);
-    if (res && res.email) {
-      setEmails(prev => [res.email, ...prev]);
+  const triggerSync = async () => {
+    try {
       addToast({
-        title: `📩 ${res.email.priority}: New University Communication`,
-        message: `${res.email.subject} — ${res.email.summary.slice(0, 75)}...`,
-        priority: res.email.priority,
-        emailId: res.email.id
+        title: '🔄 Syncing...',
+        message: 'Synchronizing with Google services...',
+        priority: 'LOW'
+      });
+      const result = await ApiService.triggerSync();
+      addToast({
+        title: '✅ Sync Complete',
+        message: result.message || `Imported ${result.gmailImported || 0} new emails`,
+        priority: 'LOW'
       });
       refreshData();
+    } catch (err) {
+      addToast({
+        title: '❌ Sync Failed',
+        message: 'Could not sync with Google services. Please check your connection.',
+        priority: 'HIGH'
+      });
     }
-  };
-
-  const resetDemo = async () => {
-    await ApiService.resetDemo();
-    addToast({
-      title: "✨ Demo Reset",
-      message: "The campus database has been reset to its pristine initial state.",
-      priority: "LOW"
-    });
-    refreshData();
   };
 
   return (
@@ -187,16 +188,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toasts,
         addToast,
         removeToast,
-        isDemoControlOpen,
-        setIsDemoControlOpen,
         isAssistantOpen,
         setIsAssistantOpen,
         isLoading,
         refreshData,
         toggleAction,
-        simulateEmail,
-        resetDemo,
-        openEmailById
+        openEmailById,
+        triggerSync,
       }}
     >
       {children}

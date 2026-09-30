@@ -3,31 +3,19 @@ import {
   LayoutDashboard,
   Inbox,
   CheckSquare,
-  GitCompare,
   Calendar,
+  BookOpen,
   MapPin,
-  BarChart3,
-  Bot,
+  ShieldCheck,
+  Network,
+  GitCompare,
+  CalendarDays,
+  Radio,
+  Lock,
   Settings,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  Sparkles,
-  Sliders,
-  BookOpen,
-  ShieldCheck,
-  Network,
-  AlertTriangle,
-  Clock,
-  HelpCircle,
-  CalendarDays,
-  Layers,
-  Radio,
-  Activity,
-  Award,
-  Compass,
-  Lock,
-  LayoutGrid
+  RefreshCw
 } from 'lucide-react';
 import { useApp, NavTab } from '../../context/AppContext';
 
@@ -37,45 +25,38 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
-  const { currentTab, setCurrentTab, dashboard, actions, emails, setIsDemoControlOpen } = useApp();
-  const [uniqueExpanded, setUniqueExpanded] = useState(true);
+  const { currentTab, setCurrentTab, dashboard, actions, emails, triggerSync } = useApp();
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const urgentCount = dashboard?.metrics?.requireAttention || 0;
   const unreadCount = emails.filter(e => !e.isRead).length;
   const pendingActions = actions.filter(a => !a.completed).length;
 
   const mainNavItems: { id: NavTab; label: string; icon: React.ElementType; badge?: number; badgeColor?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'inbox', label: 'Priority Inbox', icon: Inbox, badge: unreadCount, badgeColor: 'bg-indigo-100 text-indigo-700' },
-    { id: 'actions', label: 'My Actions', icon: CheckSquare, badge: pendingActions, badgeColor: 'bg-red-100 text-red-700' },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'classroom', label: 'Google Classroom', icon: BookOpen },
-    { id: 'relationships', label: 'What Changed?', icon: GitCompare, badge: 3, badgeColor: 'bg-amber-100 text-amber-700' },
-    { id: 'assistant', label: 'AI Assistant', icon: Bot },
-    { id: 'connections', label: 'Connected Accounts', icon: ShieldCheck }
+    { id: 'classroom', label: 'Classroom', icon: BookOpen },
+    { id: 'actions', label: 'Actions', icon: CheckSquare, badge: pendingActions, badgeColor: 'bg-red-100 text-red-700' },
+    { id: 'map', label: 'Campus Map', icon: MapPin },
+    { id: 'connections', label: 'Connections', icon: ShieldCheck }
   ];
 
-  const uniqueNavItems: { id: NavTab; label: string; icon: React.ElementType; badge?: string }[] = [
-    { id: 'unique-features', label: 'Unique Features Overview', icon: Sparkles, badge: 'ALL' },
-    { id: 'command-center', label: 'Student Command Center', icon: LayoutGrid, badge: 'NEW' },
-    { id: 'knowledge-graph', label: 'Campus Knowledge Graph', icon: Network },
-    { id: 'changes-radar', label: 'What Changed Radar', icon: GitCompare },
-    { id: 'conflicts', label: 'Information Conflict Detector', icon: AlertTriangle, badge: 'PS02' },
-    { id: 'deadline-risk', label: 'Deadline Risk', icon: Clock },
-    { id: 'why-it-matters', label: 'Why This Matters', icon: HelpCircle },
-    { id: 'calendar-planner', label: 'AI Calendar Planner', icon: CalendarDays },
-    { id: 'information-hub', label: 'Information Hub', icon: Layers },
-    { id: 'catch-up', label: 'What Did I Miss?', icon: Radio },
-    { id: 'communication-health', label: 'Communication Health', icon: Activity },
-    { id: 'opportunities', label: 'Opportunity Matcher', icon: Award },
-    { id: 'attention-budget', label: 'Attention Budget', icon: Compass },
-    { id: 'explain-decision', label: 'Explain AI Decision', icon: Sparkles },
-    { id: 'chaos-simulator', label: 'Campus Chaos Simulator', icon: Radio, badge: 'DEMO' },
-    { id: 'event-navigator', label: 'Campus Event Navigator', icon: MapPin },
-    { id: 'privacy', label: 'Privacy Center', icon: Lock }
+  const intelligenceNavItems: { id: NavTab; label: string; icon: React.ElementType; badge?: string }[] = [
+    { id: 'campus-intelligence', label: 'Campus Intelligence', icon: Network },
+    { id: 'change-conflict', label: 'Change & Conflict Radar', icon: GitCompare, badge: 'PS02' },
+    { id: 'action-planning', label: 'Action & Planning', icon: CalendarDays },
+    { id: 'student-briefing', label: 'Student Briefing', icon: Radio },
+    { id: 'trust-privacy', label: 'Trust & Privacy', icon: Lock }
   ];
 
-  const isUniqueTabActive = uniqueNavItems.some(item => item.id === currentTab);
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await triggerSync();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <aside
@@ -83,13 +64,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         collapsed ? 'w-20' : 'w-64'
       }`}
     >
-      {/* Top Branding Section */}
+      {/* Top Section */}
       <div className="flex-1 overflow-y-auto">
+        {/* Branding */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 sticky top-0 bg-white z-20">
-          <div className="flex items-center gap-3 overflow-hidden cursor-pointer" onClick={() => setCurrentTab('dashboard')}>
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center shadow-md shadow-indigo-100 shrink-0">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12h4l3 8 4-16 3 8h4" />
+          <div
+            onClick={() => setCurrentTab('dashboard')}
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform shrink-0 relative">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-pink-500 rounded-full border-2 border-white animate-pulse"></span>
             </div>
@@ -109,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                     SRM AP
                   </span>
                   <span className="text-[10px] font-medium text-slate-400 tracking-tight">
-                    Your campus. Prioritized.
+                    Operating Layer
                   </span>
                 </div>
               </div>
@@ -125,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
           </button>
         </div>
 
-        {/* Main Navigation Links */}
+        {/* Main Navigation */}
         <nav className="p-3 space-y-1">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
@@ -135,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               <button
                 key={item.id}
                 onClick={() => setCurrentTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-xs transition-all duration-200 cursor-pointer group relative ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all duration-200 cursor-pointer group relative ${
                   isActive
                     ? 'bg-indigo-50 text-indigo-700 font-bold shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -152,7 +137,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
                 />
                 {!collapsed && <span className="truncate text-left flex-1">{item.label}</span>}
                 {!collapsed && item.badge !== undefined && item.badge > 0 && (
-                  <span className={`ml-auto px-1.5 py-0.2 text-[10px] font-bold rounded-full ${item.badgeColor || 'bg-slate-100 text-slate-600'}`}>
+                  <span
+                    className={`ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                      item.badgeColor || 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
                     {item.badge}
                   </span>
                 )}
@@ -160,68 +149,56 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             );
           })}
 
-          {/* ========================================================= */}
-          {/* NEW SECTION: UNIQUE FEATURES (ABOVE SETTINGS) */}
-          {/* ========================================================= */}
-          <div className="pt-3 mt-2 border-t border-slate-100">
+          {/* Section Divider: CAMPUS INTELLIGENCE */}
+          <div className="pt-4 pb-1">
             {!collapsed ? (
-              <button
-                onClick={() => setUniqueExpanded(!uniqueExpanded)}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-extrabold text-indigo-700 uppercase tracking-wider rounded-lg hover:bg-indigo-50/60 transition-colors cursor-pointer mb-1"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>UNIQUE FEATURES</span>
-                </div>
-                {uniqueExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-              </button>
-            ) : (
-              <div className="w-full h-px bg-slate-200 my-2" />
-            )}
-
-            {(uniqueExpanded || collapsed) && (
-              <div className="space-y-0.5">
-                {uniqueNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentTab === item.id;
-
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setCurrentTab(item.id)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs transition-all duration-150 cursor-pointer group relative ${
-                        isActive
-                          ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-800 font-bold shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                      title={collapsed ? item.label : undefined}
-                    >
-                      {isActive && (
-                        <span className="absolute left-0 top-1 bottom-1 w-1 bg-gradient-to-b from-indigo-600 to-purple-600 rounded-r-full" />
-                      )}
-                      <Icon
-                        className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:scale-110 ${
-                          isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
-                        }`}
-                      />
-                      {!collapsed && <span className="truncate text-left flex-1 text-[11px]">{item.label}</span>}
-                      {!collapsed && item.badge && (
-                        <span className="ml-auto text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">
-                          {item.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <span>CAMPUS INTELLIGENCE</span>
               </div>
+            ) : (
+              <div className="h-px bg-slate-200 mx-3 my-2" />
             )}
           </div>
 
-          {/* Settings Section (Below Unique Features) */}
-          <div className="pt-2 border-t border-slate-100 mt-2">
+          {/* 5 Campus Intelligence Nav Items */}
+          {intelligenceNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentTab === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => setCurrentTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all duration-200 cursor-pointer group relative ${
+                  isActive
+                    ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-800 font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+                title={collapsed ? item.label : undefined}
+              >
+                {isActive && (
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-gradient-to-b from-indigo-600 to-purple-600 rounded-r-full" />
+                )}
+                <Icon
+                  className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                    isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
+                  }`}
+                />
+                {!collapsed && <span className="truncate text-left flex-1">{item.label}</span>}
+                {!collapsed && item.badge && (
+                  <span className="ml-auto text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Settings Section */}
+          <div className="pt-4 border-t border-slate-100 mt-3">
             <button
               onClick={() => setCurrentTab('settings')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-xs transition-all duration-200 cursor-pointer group relative ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all duration-200 cursor-pointer group relative ${
                 currentTab === 'settings'
                   ? 'bg-indigo-50 text-indigo-700 font-bold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -238,20 +215,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         </nav>
       </div>
 
-      {/* Bottom Section: Hackathon Demo Center Controller */}
+      {/* Bottom Section: Real Live Google Sync Button */}
       <div className="p-3 border-t border-slate-100">
         <button
-          onClick={() => setIsDemoControlOpen(true)}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-800 hover:from-emerald-100 hover:to-teal-100 transition-all text-xs font-semibold shadow-xs cursor-pointer ${
+          onClick={handleSync}
+          disabled={isSyncing}
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-indigo-50 to-cyan-50 border border-indigo-200/80 text-indigo-800 hover:from-indigo-100 hover:to-cyan-100 transition-all text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50 ${
             collapsed ? 'justify-center' : ''
           }`}
-          title="Open Demo Control Center"
+          title="Synchronize with Google Services"
         >
-          <Sliders className="w-4 h-4 text-emerald-600 shrink-0" />
+          <RefreshCw className={`w-4 h-4 text-indigo-600 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
           {!collapsed && (
             <div className="flex flex-col text-left">
-              <span>Demo Controls</span>
-              <span className="text-[10px] text-emerald-600 font-normal">SIH PS02 Live Console</span>
+              <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+              <span className="text-[10px] text-indigo-600 font-normal">Gmail · Classroom · Calendar</span>
             </div>
           )}
         </button>
